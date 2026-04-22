@@ -52,6 +52,7 @@ test("universities tabs host ranking and comparison results in one workspace", a
   const continueCompareButton = page.locator("[data-action='build-compare-results']").first();
   await expect(continueCompareButton).toBeEnabled();
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.evaluate(() => { window.scrollTo(0, document.body.scrollHeight); return new Promise(resolve => setTimeout(resolve, 50)); });
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await continueCompareButton.click();
   await expect(page).toHaveURL(/compare=results/);
