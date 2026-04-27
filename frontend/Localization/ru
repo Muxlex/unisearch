@@ -993,3 +993,22 @@ languages.updated_value: Обновлён {language} {exam}: {value}
 error.no_connection.title: Нет подключения к интернету
 error.no_connection.desc: Мы не смогли связаться с сервером. Пожалуйста, проверьте подключение и повторите попытку.
 error.retry: Повторить
+universities.compare.category.admissions.subtitle: Критерии поступления
+universities.compare.category.admissions.title: Поступление
+universities.compare.category.data.subtitle: Основные данные
+universities.compare.category.data.title: Данные
+universities.compare.category.finance.subtitle: Стоимость и помощь
+universities.compare.category.finance.title: Финансы
+universities.compare.category.outcomes.subtitle: Карьера и результаты
+universities.compare.category.outcomes.title: Результаты
+universities.compare.category.prestige.subtitle: Рейтинги и репутация
+universities.compare.category.prestige.title: Престиж
+universities.compare.exams_required: Требуемые экзамены
+universities.compare.funding.grant: Грант
+universities.compare.funding.paid: Платно
+universities.compare.quality.basic: Базовое
+universities.compare.quality.high: Высокое
+universities.compare.quality.medium: Среднее
+universities.compare.slot_label: Место
+universities.compare.source_note: Источник данных
+universities.compare.standard_requirements: Стандартные требования
