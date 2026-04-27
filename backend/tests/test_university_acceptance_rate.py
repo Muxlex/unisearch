@@ -1,5 +1,5 @@
 import unittest
-from backend.app.services.universities import _get_university_acceptance_rate
+from app.services.universities import _get_university_acceptance_rate
 
 class TestUniversityAcceptanceRate(unittest.TestCase):
     def test_direct_acceptance_rate(self):
