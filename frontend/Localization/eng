@@ -994,3 +994,22 @@ languages.updated_value: Updated {language} {exam}: {value}
 error.no_connection.title: No Internet Connection
 error.no_connection.desc: We couldn't reach the server. Please check your internet connection and try again.
 error.retry: Retry
+universities.compare.category.admissions.subtitle: Difficulty and requirements
+universities.compare.category.admissions.title: Admissions
+universities.compare.category.data.subtitle: Verification level
+universities.compare.category.data.title: Data quality
+universities.compare.category.finance.subtitle: Affordability and aid
+universities.compare.category.finance.title: Finance
+universities.compare.category.outcomes.subtitle: Career and salary potential
+universities.compare.category.outcomes.title: Outcomes
+universities.compare.category.prestige.subtitle: Rankings and entry standards
+universities.compare.category.prestige.title: Prestige
+universities.compare.exams_required: Required
+universities.compare.funding.grant: Grant
+universities.compare.funding.paid: Paid
+universities.compare.quality.basic: Basic
+universities.compare.quality.high: High
+universities.compare.quality.medium: Medium
+universities.compare.slot_label: Slot
+universities.compare.source_note: Note
+universities.compare.standard_requirements: Standard Requirements
