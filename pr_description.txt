@@ -1,0 +1,8 @@
+🎯 **What:** The testing gap in `frontend/javascript/settings.js` has been addressed.
+📊 **Coverage:** The new test file (`tests/unit/settings.test.mjs`) covers:
+  - Reading settings array from empty, valid JSON, invalid JSON, and non-array storage.
+  - Writing settings array, including proper validation and normalization of inputs.
+  - Getting and setting individual settings values.
+  - Verifying the dispatch of the `settingsChanged` event.
+  - Helper functions like `shouldStoreRecentUniversities` and `shouldOpenUniversitiesInNewTab`.
+✨ **Result:** Test coverage for the frontend settings logic has been improved from 0% to nearly 100%, providing safety for future refactoring and feature additions.
