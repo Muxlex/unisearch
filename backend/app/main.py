@@ -267,7 +267,7 @@ async def request_metrics(request: Request, call_next):
         if response is None:
             response = await call_next(request)
         response.headers.update(rate_headers)
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         _log_request_failure(request, request_id, start)
         raise
 
