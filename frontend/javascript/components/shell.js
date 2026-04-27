@@ -18,7 +18,7 @@ let translationStatusCache = {
   inFlight: null,
 };
 
-function hashString(input) {
+export function hashString(input) {
   let hash = 0;
   for (let index = 0; index < input.length; index += 1) {
     hash = ((hash << 5) - hash) + input.charCodeAt(index);
