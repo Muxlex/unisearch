@@ -153,7 +153,7 @@ def _load_university_translations_raw() -> Dict[str, Any]:
                 data = json.load(f)
             if not isinstance(data, dict):
                 data = {}
-        except (OSError, json.JSONDecodeError):
+        except Exception:
             data = {}
         _UNI_TRANSLATIONS_CACHE["mtime"] = mtime
         _UNI_TRANSLATIONS_CACHE["data"] = data
@@ -1985,7 +1985,7 @@ def _load_universities_cached() -> List[Dict[str, Any]]:
                 data = json.load(f)
             if not isinstance(data, list):
                 data = []
-        except (OSError, json.JSONDecodeError):
+        except Exception:
             data = []
 
         out: List[Dict[str, Any]] = []
@@ -2078,7 +2078,7 @@ def get_locations() -> Dict[str, Any]:
             with open(CITIES_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
             _LOC_CACHE["data"] = data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError):
+        except Exception:
             _LOC_CACHE["data"] = {}
         _LOC_CACHE["mtime"] = mtime
     return _LOC_CACHE["data"]

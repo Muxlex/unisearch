@@ -1,0 +1,4 @@
+🎯 **What:** The code health issue addressed was broad exception catching (`except Exception:`) in three functions: `_load_university_translations_raw()`, `_load_universities_cached()`, and `get_locations()` within `backend/app/services/universities.py`.
+💡 **Why:** Broad exception catching is an anti-pattern as it can silently swallow unintended errors (like typos or memory errors). Narrowing it down to only `(OSError, json.JSONDecodeError)` makes the intent clearer and prevents hidden bugs during `json.load` operations.
+✅ **Verification:** I ran the entire backend test suite using `pytest` and all 148 tests passed, confirming functionality was preserved. Also ran formatters and linters (`black`, `ruff`) successfully.
+✨ **Result:** The codebase is cleaner and its exception handling is more predictable and maintainable.
