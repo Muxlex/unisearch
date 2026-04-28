@@ -11,6 +11,8 @@ on:
 jobs:
   backend-tests:
     if: github.event_name != 'schedule'
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ${{ github.workspace }}/backend
@@ -57,6 +59,8 @@ jobs:
   e2e-pr:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,6 +108,8 @@ jobs:
   nightly-full:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
