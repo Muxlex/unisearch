@@ -4,6 +4,8 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.core import settings
+
 from app.core.files import file_mtime
 from app.core.paths import DATA_PATH, CITIES_PATH, UNIVERSITIES_TRANSLATIONS_PATH
 from app.core.utils import to_float as _num_or_none, safe_lower as _safe_lower, norm_space as _norm_space, norm_tag_key as _norm_tag_key
@@ -119,6 +121,9 @@ def _load_university_translations_raw() -> Dict[str, Any]:
         try:
             with open(UNIVERSITIES_TRANSLATIONS_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            if not isinstance(data, list):
+                data = []
+            data = _inject_api_keys(data, public_only=True)
             if not isinstance(data, dict):
                 data = {}
         except Exception:
@@ -1719,6 +1724,24 @@ def _apply_sort(items: List[Dict[str, Any]], sort: str, format_preference: Any =
 _UNI_CACHE = {"mtime": None, "data": [], "by_id": {}, "meta": []}
 
 
+
+def _inject_api_keys(data: Any, public_only: bool = True) -> Any:
+    """Recursively replaces {VARIABLE} placeholders in JSON data with values from settings.
+    For public-facing data (API/UI), we use standard public keys (like DEMO_KEY) to avoid leaking
+    any configured high-limit private keys in source_url fields.
+    """
+    if isinstance(data, str):
+        if "{COLLEGE_SCORECARD_API_KEY}" in data:
+            key = "DEMO_KEY" if public_only else settings.COLLEGE_SCORECARD_API_KEY
+            return data.replace("{COLLEGE_SCORECARD_API_KEY}", key)
+        return data
+    if isinstance(data, list):
+        return [_inject_api_keys(item, public_only=public_only) for item in data]
+    if isinstance(data, dict):
+        return {key: _inject_api_keys(value, public_only=public_only) for key, value in data.items()}
+    return data
+
+
 def _load_universities_cached() -> List[Dict[str, Any]]:
     mtime = file_mtime(DATA_PATH)
     if mtime is None:
@@ -1732,6 +1755,9 @@ def _load_universities_cached() -> List[Dict[str, Any]]:
         try:
             with open(DATA_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            if not isinstance(data, list):
+                data = []
+            data = _inject_api_keys(data, public_only=True)
             if not isinstance(data, list):
                 data = []
         except Exception:
@@ -1822,6 +1848,9 @@ def get_locations() -> Dict[str, Any]:
         try:
             with open(CITIES_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            if not isinstance(data, list):
+                data = []
+            data = _inject_api_keys(data, public_only=True)
             _LOC_CACHE["data"] = data if isinstance(data, dict) else {}
         except Exception:
             _LOC_CACHE["data"] = {}
