@@ -1123,21 +1123,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110404&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110404&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110404&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110404&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110404&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110404&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 2.57,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110404&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110404&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1212,21 +1212,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110635&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110635&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110635&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110635&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110635&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110635&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 10.98,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110635&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110635&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1301,21 +1301,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=186131&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=186131&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=186131&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=186131&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=186131&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=186131&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 4.62,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=186131&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=186131&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1390,21 +1390,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=130794&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=130794&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=130794&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=130794&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=130794&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=130794&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 3.87,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=130794&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=130794&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1478,21 +1478,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=144050&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=144050&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=144050&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=144050&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=144050&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=144050&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 4.48,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=144050&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=144050&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1566,21 +1566,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=215062&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=215062&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=215062&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=215062&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=215062&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=215062&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 5.4,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=215062&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=215062&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1655,21 +1655,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=190415&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=190415&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=190415&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=190415&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=190415&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=190415&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 8.76,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=190415&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=190415&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1744,21 +1744,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=190150&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=190150&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=190150&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=190150&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=190150&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=190150&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 3.99,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=190150&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=190150&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1832,21 +1832,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=162928&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=162928&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=162928&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=162928&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=162928&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=162928&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 6.44,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=162928&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=162928&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",
@@ -1921,21 +1921,21 @@
         },
         {
           "topic": "acceptance_rate",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110662&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110662&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "student_count",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110662&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110662&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         },
         {
           "topic": "outcomes",
-          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110662&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
+          "url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110662&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median"
         }
       ],
       "acceptance_rate_percent": {
         "value": 8.97,
         "source": "U.S. Department of Education College Scorecard",
-        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key=DEMO_KEY&id=110662&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
+        "source_url": "https://api.data.gov/ed/collegescorecard/v1/schools?api_key={COLLEGE_SCORECARD_API_KEY}&id=110662&fields=id%2Cschool.name%2Clocation.lat%2Clocation.lon%2Clatest.student.size%2Clatest.admissions.admission_rate.overall%2Clatest.admissions.sat_scores.average.overall%2Clatest.admissions.act_scores.midpoint.cumulative%2Clatest.cost.tuition.out_of_state%2Clatest.cost.attendance.academic_year%2Clatest.cost.booksupply%2Clatest.cost.roomboard.oncampus%2Clatest.cost.otherexpense.oncampus%2Clatest.earnings.10_yrs_after_entry.median",
         "verified_at": "2026-04-04",
         "status": "official_external",
         "confidence": "high",

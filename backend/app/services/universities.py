@@ -4,6 +4,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.core import settings
 from app.core.files import file_mtime
 from app.core.paths import DATA_PATH, CITIES_PATH, UNIVERSITIES_TRANSLATIONS_PATH
 from app.core.utils import to_float as _num_or_none, safe_lower as _safe_lower, norm_space as _norm_space, norm_tag_key as _norm_tag_key
@@ -1719,6 +1720,19 @@ def _apply_sort(items: List[Dict[str, Any]], sort: str, format_preference: Any =
 _UNI_CACHE = {"mtime": None, "data": [], "by_id": {}, "meta": []}
 
 
+def _inject_api_keys(data: Any) -> Any:
+    """Recursively replaces {VARIABLE} placeholders in JSON data with values from settings."""
+    if isinstance(data, str):
+        if "{COLLEGE_SCORECARD_API_KEY}" in data:
+            return data.replace("{COLLEGE_SCORECARD_API_KEY}", settings.COLLEGE_SCORECARD_API_KEY)
+        return data
+    if isinstance(data, list):
+        return [_inject_api_keys(item) for item in data]
+    if isinstance(data, dict):
+        return {key: _inject_api_keys(value) for key, value in data.items()}
+    return data
+
+
 def _load_universities_cached() -> List[Dict[str, Any]]:
     mtime = file_mtime(DATA_PATH)
     if mtime is None:
@@ -1736,6 +1750,9 @@ def _load_universities_cached() -> List[Dict[str, Any]]:
                 data = []
         except Exception:
             data = []
+
+        # Inject runtime API keys into the loaded dataset
+        data = _inject_api_keys(data)
 
         out: List[Dict[str, Any]] = []
         meta_list: List[Dict[str, Any]] = []
