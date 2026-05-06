@@ -1,0 +1,3 @@
+🎯 What: Addressed missing unit tests for `escapeHtmlAttr` in `frontend/javascript/utils/format.js`.
+📊 Coverage: Added unit tests for escaping basic HTML characters, multiple characters, handling null/undefined/empty strings, leaving standard text unchanged, and safely converting non-string values.
+✨ Result: `escapeHtmlAttr` is now fully unit tested, improving test coverage and ensuring that future string manipulation changes do not introduce regressions.
