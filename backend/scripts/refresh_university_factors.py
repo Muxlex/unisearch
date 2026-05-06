@@ -16,13 +16,11 @@ import datetime as dt
 import json
 import math
 import re
-import time
 import urllib.parse
 import urllib.request
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-
 
 ROOT = Path(__file__).resolve().parents[2]
 UNIVERSITIES_PATH = ROOT / "backend" / "data" / "universities.json"
@@ -181,8 +179,14 @@ def _fetch_openalex_institution(
     lon = _safe_num(coords.get("lon"))
 
     cleaned = re.sub(r"\([^)]*\)", "", name).strip() or name
-    query_candidates = [cleaned, re.sub(r"^the\s+", "", cleaned, flags=re.IGNORECASE), name]
-    query_candidates = [q for i, q in enumerate(query_candidates) if q and q not in query_candidates[:i]]
+    query_candidates = [
+        cleaned,
+        re.sub(r"^the\s+", "", cleaned, flags=re.IGNORECASE),
+        name,
+    ]
+    query_candidates = [
+        q for i, q in enumerate(query_candidates) if q and q not in query_candidates[:i]
+    ]
 
     best_row: Optional[Dict[str, Any]] = None
     best_url = ""
@@ -309,7 +313,11 @@ def _fetch_city_population_wikidata(
     )
     with urllib.request.urlopen(req, timeout=30.0) as resp:  # noqa: S310
         payload = json.loads(resp.read().decode("utf-8"))
-    bindings = (((payload.get("results") or {}).get("bindings")) if isinstance(payload, dict) else None) or []
+    bindings = (
+        ((payload.get("results") or {}).get("bindings"))
+        if isinstance(payload, dict)
+        else None
+    ) or []
 
     best_val = None
     for row in bindings:
@@ -370,7 +378,12 @@ def main() -> None:
     if not isinstance(universities, list):
         raise RuntimeError(f"Unexpected JSON shape in {UNIVERSITIES_PATH}")
 
-    now_iso = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    now_iso = (
+        dt.datetime.now(dt.timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
     staged: List[Dict[str, Any]] = []
 
     print(f"Refreshing factors for {len(universities)} universities...")
@@ -391,13 +404,11 @@ def main() -> None:
             openalex_row, openalex_url = _fetch_openalex_institution(university)
         except Exception as exc:
             print(f"  OpenAlex lookup failed: {exc}")
-        time.sleep(0.12)
 
         try:
             geocode_row, geocode_url = _fetch_city_population(university)
         except Exception as exc:
             print(f"  Open-Meteo lookup failed: {exc}")
-        time.sleep(0.12)
 
         finance = university.get("finance")
         finance = finance if isinstance(finance, dict) else {}
@@ -407,11 +418,12 @@ def main() -> None:
         population = _safe_num((geocode_row or {}).get("population"))
         if population is None:
             try:
-                wikidata_population, wikidata_url = _fetch_city_population_wikidata(university)
+                wikidata_population, wikidata_url = _fetch_city_population_wikidata(
+                    university
+                )
                 population = _safe_num(wikidata_population)
             except Exception as exc:
                 print(f"  Wikidata population lookup failed: {exc}")
-            time.sleep(0.12)
 
         staged.append(
             {
@@ -430,7 +442,9 @@ def main() -> None:
         )
 
     research_default = _median((row.get("research") for row in staged), default=0.5)
-    population_default = _median((row.get("population") for row in staged), default=500_000.0)
+    population_default = _median(
+        (row.get("population") for row in staged), default=500_000.0
+    )
     tuition_default = _median((row.get("tuition") for row in staged), default=0.0)
     hardcore_default = 0.5
 
@@ -454,8 +468,14 @@ def main() -> None:
     rank_norm = _minmax(official_rank_values, default=hardcore_default)
     hardcore_values = []
     for idx, row in enumerate(staged):
-        rank_signal = 1.0 - rank_norm[idx] if row.get("official_rank") is not None else hardcore_default
-        hardcore_values.append(_clamp01((0.55 * rank_signal) + (0.45 * research_norm[idx])))
+        rank_signal = (
+            1.0 - rank_norm[idx]
+            if row.get("official_rank") is not None
+            else hardcore_default
+        )
+        hardcore_values.append(
+            _clamp01((0.55 * rank_signal) + (0.45 * research_norm[idx]))
+        )
 
     for idx, row in enumerate(staged):
         university = row["university"]
@@ -500,9 +520,11 @@ def main() -> None:
                     "country_code": openalex.get("country_code"),
                     "works_count": openalex.get("works_count"),
                     "cited_by_count": openalex.get("cited_by_count"),
-                    "h_index": (openalex.get("summary_stats") or {}).get("h_index")
-                    if isinstance(openalex.get("summary_stats"), dict)
-                    else None,
+                    "h_index": (
+                        (openalex.get("summary_stats") or {}).get("h_index")
+                        if isinstance(openalex.get("summary_stats"), dict)
+                        else None
+                    ),
                 },
                 "city": {
                     "name": geocode.get("name"),
@@ -514,7 +536,9 @@ def main() -> None:
                 "rank": {
                     "position": row.get("official_rank"),
                     "status": (
-                        str(((university.get("rank_meta") or {}).get("status")) or "").strip().lower()
+                        str(((university.get("rank_meta") or {}).get("status")) or "")
+                        .strip()
+                        .lower()
                         if isinstance(university.get("rank_meta"), dict)
                         else ""
                     ),
@@ -524,7 +548,11 @@ def main() -> None:
                     "research_signal_raw": row.get("research"),
                     "hardcore_signal_0_1": round(hardcore_values[idx], 6),
                     "research_norm_0_1": round(research_norm[idx], 6),
-                    "official_rank_norm_0_1": round(rank_norm[idx], 6) if row.get("official_rank") is not None else None,
+                    "official_rank_norm_0_1": (
+                        round(rank_norm[idx], 6)
+                        if row.get("official_rank") is not None
+                        else None
+                    ),
                     "tuition_norm_0_1": round(tuition_norm[idx], 6),
                     "city_population_norm_0_1": round(population_norm[idx], 6),
                 },
@@ -548,7 +576,9 @@ def main() -> None:
     print("")
     print(f"Updated: {UNIVERSITIES_PATH}")
     print(f"OpenAlex matches: {matched_openalex}/{len(staged)}")
-    print(f"City population matches (Open-Meteo/Wikidata): {matched_population}/{len(staged)}")
+    print(
+        f"City population matches (Open-Meteo/Wikidata): {matched_population}/{len(staged)}"
+    )
 
 
 if __name__ == "__main__":
