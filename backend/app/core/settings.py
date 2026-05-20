@@ -157,5 +157,4 @@ except Exception:
     ML_SEMANTIC_EMBEDDINGS_BATCH_SIZE = 32
 ML_SEMANTIC_EMBEDDINGS_E5_PREFIX = os.getenv("ML_SEMANTIC_EMBEDDINGS_E5_PREFIX", "auto").strip().lower() or "auto"
 
-# College Scorecard API (data.gov)
 COLLEGE_SCORECARD_API_KEY = os.getenv("COLLEGE_SCORECARD_API_KEY", "DEMO_KEY").strip() or "DEMO_KEY"
