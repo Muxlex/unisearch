@@ -6,14 +6,17 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.files import file_mtime
 from app.core.paths import DATA_PATH, CITIES_PATH, UNIVERSITIES_TRANSLATIONS_PATH
-from app.core.utils import to_float as _num_or_none, safe_lower as _safe_lower, norm_space as _norm_space, norm_tag_key as _norm_tag_key
+from app.core.utils import (
+    to_float as _num_or_none,
+    safe_lower as _safe_lower,
+    norm_space as _norm_space,
+    norm_tag_key as _norm_tag_key,
+)
 from app.services import exams as exams_service
 from app.services.finance_modes import (
     extract_tuition_cost as _extract_tuition_cost,
     mode_breakdown_from_finance as _mode_breakdown_from_finance,
     mode_total_from_finance as _mode_total_from_finance,
-    mode_value_from_map as _mode_value_from_map,
-    normalize_cost_key as _normalize_cost_key,
     normalize_study_mode as _normalize_study_mode,
 )
 from app.services import search as search_service
@@ -47,16 +50,32 @@ _HIDDEN_SEARCH_ALIASES_BY_UNIVERSITY_ID: Dict[str, List[str]] = {
     "national-university-of-singapore-sg-singapore": ["NUS", "НУС"],
     "epfl-ch-lausanne": ["EPFL", "ЕПФЛ"],
     "technical-university-of-munich-de-munich": ["TUM", "ТУМ"],
-    "university-of-toronto-ca-toronto": ["U of T", "UofT", "Toronto", "Торонто", "Ю оф Т"],
+    "university-of-toronto-ca-toronto": [
+        "U of T",
+        "UofT",
+        "Toronto",
+        "Торонто",
+        "Ю оф Т",
+    ],
     "cuhk-hk-shatin": ["CUHK", "КУХК"],
     "university-of-tokyo-jp-tokyo": ["UTokyo", "Todai", "Тодай", "УТокио"],
     "seoul-national-university-kr-seoul": ["SNU", "СНУ"],
-    "delft-university-of-technology-nl-delft": ["TU Delft", "Delft Tech", "ТУ Делфт", "Делфт Тех"],
+    "delft-university-of-technology-nl-delft": [
+        "TU Delft",
+        "Delft Tech",
+        "ТУ Делфт",
+        "Делфт Тех",
+    ],
     "kaist-kr-daejeon": ["KAIST", "КАИСТ", "КАЙСТ"],
     "tsinghua-university-cn-beijing": ["Tsinghua", "THU", "Цинхуа", "ТХУ"],
     "nazarbayev-university-kaz-astana": ["NU", "НУ"],
     "kyoto-university-jp-kyoto": ["KyotoU", "Kyodai", "Киото", "Кёто", "Кёодай"],
-    "university-of-melbourne-au-melbourne": ["UniMelb", "Melbourne", "Мельбурн", "ЮниМелб"],
+    "university-of-melbourne-au-melbourne": [
+        "UniMelb",
+        "Melbourne",
+        "Мельбурн",
+        "ЮниМелб",
+    ],
     "suleyman-demirel-university-kaz-kaskelen": ["SDU", "СДУ"],
     "astana-it-university-kaz-astana": ["AITU", "АИТУ"],
     "university-of-oxford-uk-oxford": ["Oxford", "Оксфорд"],
@@ -78,11 +97,24 @@ _HIDDEN_SEARCH_ALIASES_BY_UNIVERSITY_ID: Dict[str, List[str]] = {
     "mcgill-university-ca-montreal": ["McGill", "Макгилл"],
     "university-of-british-columbia-ca-vancouver": ["UBC", "British Columbia", "ЮБиСи"],
     "university-of-waterloo-ca-waterloo": ["Waterloo", "Ватерлоо"],
-    "unsw-sydney-au-sydney": ["UNSW", "University of New South Wales", "New South Wales", "ЮНСВ"],
+    "unsw-sydney-au-sydney": [
+        "UNSW",
+        "University of New South Wales",
+        "New South Wales",
+        "ЮНСВ",
+    ],
     "university-of-sydney-au-sydney": ["USyd", "Sydney", "Сидней"],
-    "australian-national-university-au-canberra": ["ANU", "Australian National University", "АНУ"],
+    "australian-national-university-au-canberra": [
+        "ANU",
+        "Australian National University",
+        "АНУ",
+    ],
     "university-of-hong-kong-hk-hong-kong": ["HKU", "Hong Kong University", "ХКУ"],
-    "hkust-hk-hong-kong": ["HKUST", "Hong Kong University of Science and Technology", "ХКУСТ"],
+    "hkust-hk-hong-kong": [
+        "HKUST",
+        "Hong Kong University of Science and Technology",
+        "ХКУСТ",
+    ],
     "nanyang-technological-university-sg-singapore": ["NTU", "Nanyang", "НТУ"],
 }
 
@@ -150,7 +182,9 @@ def _replace_insensitive(text: str, search: str, replacement: str) -> str:
     if not src:
         return str(text or "")
     escaped = re.escape(src)
-    return re.sub(escaped, lambda _: str(replacement or ""), str(text or ""), flags=re.IGNORECASE)
+    return re.sub(
+        escaped, lambda _: str(replacement or ""), str(text or ""), flags=re.IGNORECASE
+    )
 
 
 def _translate_group_value(group: str, value: Any, search_lang: Any) -> str:
@@ -170,7 +204,9 @@ def _translate_program_name(value: Any, search_lang: Any) -> str:
     if _normalize_search_lang(search_lang) == SEARCH_LANG_ENG:
         return raw
     pack = _translation_lang_pack(search_lang)
-    table = pack.get("program_names") if isinstance(pack.get("program_names"), dict) else {}
+    table = (
+        pack.get("program_names") if isinstance(pack.get("program_names"), dict) else {}
+    )
     return str(table.get(_keyify(raw), raw))
 
 
@@ -181,10 +217,18 @@ def _translate_admission_text(value: Any, search_lang: Any) -> str:
     if _normalize_search_lang(search_lang) == SEARCH_LANG_ENG:
         return raw
     pack = _translation_lang_pack(search_lang)
-    exact = pack.get("admission_exact") if isinstance(pack.get("admission_exact"), dict) else {}
+    exact = (
+        pack.get("admission_exact")
+        if isinstance(pack.get("admission_exact"), dict)
+        else {}
+    )
     if raw in exact:
         return str(exact[raw])
-    rules = pack.get("admission_replace") if isinstance(pack.get("admission_replace"), list) else []
+    rules = (
+        pack.get("admission_replace")
+        if isinstance(pack.get("admission_replace"), list)
+        else []
+    )
     out = raw
     for rule in rules:
         if not (isinstance(rule, list) or isinstance(rule, tuple)) or len(rule) < 2:
@@ -200,7 +244,9 @@ def _translate_track_label(value: Any, search_lang: Any) -> str:
     if _normalize_search_lang(search_lang) == SEARCH_LANG_ENG:
         return raw
     pack = _translation_lang_pack(search_lang)
-    table = pack.get("track_labels") if isinstance(pack.get("track_labels"), dict) else {}
+    table = (
+        pack.get("track_labels") if isinstance(pack.get("track_labels"), dict) else {}
+    )
     direct = table.get(_keyify(raw))
     if direct:
         return str(direct)
@@ -217,18 +263,26 @@ def _translate_track_label(value: Any, search_lang: Any) -> str:
     return out
 
 
-def _translate_university_name(university_id: Any, fallback: Any, search_lang: Any) -> str:
+def _translate_university_name(
+    university_id: Any, fallback: Any, search_lang: Any
+) -> str:
     fallback_text = str(fallback or "").strip()
     uid = str(university_id or "").strip()
     if not uid:
         return fallback_text
     pack = _translation_lang_pack(search_lang)
-    names = pack.get("university_names") if isinstance(pack.get("university_names"), dict) else {}
+    names = (
+        pack.get("university_names")
+        if isinstance(pack.get("university_names"), dict)
+        else {}
+    )
     translated = str(names.get(uid, "")).strip()
     return translated or fallback_text
 
 
-def _translate_university_description(university: Dict[str, Any], search_lang: Any) -> str:
+def _translate_university_description(
+    university: Dict[str, Any], search_lang: Any
+) -> str:
     u = university if isinstance(university, dict) else {}
     source = str(u.get("description") or "").strip()
     lang = _normalize_search_lang(search_lang)
@@ -259,7 +313,9 @@ def _translate_maybe_list(value: Any, translator) -> Any:
     return translator(value)
 
 
-def _localize_university_payload(university: Dict[str, Any], search_lang: Any) -> Dict[str, Any]:
+def _localize_university_payload(
+    university: Dict[str, Any], search_lang: Any
+) -> Dict[str, Any]:
     if not isinstance(university, dict):
         return {}
     lang = _normalize_search_lang(search_lang)
@@ -275,7 +331,9 @@ def _localize_university_payload(university: Dict[str, Any], search_lang: Any) -
 
     location = u.get("location")
     if isinstance(location, dict):
-        location["country"] = _translate_group_value("country", location.get("country"), lang)
+        location["country"] = _translate_group_value(
+            "country", location.get("country"), lang
+        )
         location["city"] = _translate_group_value("city", location.get("city"), lang)
         location["state"] = _translate_group_value("state", location.get("state"), lang)
 
@@ -285,19 +343,25 @@ def _localize_university_payload(university: Dict[str, Any], search_lang: Any) -
 
     student_life = u.get("student_life")
     if isinstance(student_life, dict):
-        student_life["size"] = _translate_group_value("campus_size", student_life.get("size"), lang)
+        student_life["size"] = _translate_group_value(
+            "campus_size", student_life.get("size"), lang
+        )
 
     academics = u.get("academics")
     if isinstance(academics, dict):
         if isinstance(academics.get("majors"), list):
-            academics["majors"] = [_translate_program_name(x, lang) for x in academics.get("majors", [])]
+            academics["majors"] = [
+                _translate_program_name(x, lang) for x in academics.get("majors", [])
+            ]
         if isinstance(academics.get("study_levels"), list):
             academics["study_levels"] = [
-                _translate_group_value("study_level", x, lang) for x in academics.get("study_levels", [])
+                _translate_group_value("study_level", x, lang)
+                for x in academics.get("study_levels", [])
             ]
         if isinstance(academics.get("formats"), list):
             academics["formats"] = [
-                _translate_group_value("study_mode", x, lang) for x in academics.get("formats", [])
+                _translate_group_value("study_mode", x, lang)
+                for x in academics.get("formats", [])
             ]
         programs = academics.get("programs")
         if isinstance(programs, list):
@@ -325,11 +389,16 @@ def _localize_university_payload(university: Dict[str, Any], search_lang: Any) -
         track["label"] = _translate_track_label(track.get("label"), lang)
         track["track_badge"] = _translate_admission_text(track.get("track_badge"), lang)
         track["description"] = _translate_admission_text(track.get("description"), lang)
-        track["funding_program"] = _translate_admission_text(track.get("funding_program"), lang)
-        track["funding_source"] = _translate_admission_text(track.get("funding_source"), lang)
+        track["funding_program"] = _translate_admission_text(
+            track.get("funding_program"), lang
+        )
+        track["funding_source"] = _translate_admission_text(
+            track.get("funding_source"), lang
+        )
         if isinstance(track.get("applicable_majors"), list):
             track["applicable_majors"] = [
-                _translate_program_name(x, lang) for x in track.get("applicable_majors", [])
+                _translate_program_name(x, lang)
+                for x in track.get("applicable_majors", [])
             ]
         if isinstance(track.get("study_mode"), (str, list)):
             track["study_mode"] = _translate_maybe_list(
@@ -338,7 +407,8 @@ def _localize_university_payload(university: Dict[str, Any], search_lang: Any) -
             )
         if isinstance(track.get("extra_requirements"), list):
             track["extra_requirements"] = [
-                _translate_admission_text(x, lang) for x in track.get("extra_requirements", [])
+                _translate_admission_text(x, lang)
+                for x in track.get("extra_requirements", [])
             ]
 
         lang_reqs = track.get("language_requirements")
@@ -353,7 +423,9 @@ def _localize_university_payload(university: Dict[str, Any], search_lang: Any) -
             for scholarship in scholarships:
                 if not isinstance(scholarship, dict):
                     continue
-                scholarship["name"] = _translate_admission_text(scholarship.get("name"), lang)
+                scholarship["name"] = _translate_admission_text(
+                    scholarship.get("name"), lang
+                )
 
         funding_options = track.get("funding_options")
         if isinstance(funding_options, list):
@@ -515,12 +587,17 @@ _TAG_LOCALIZED_BY_LANG: Dict[str, Dict[str, str]] = {
     },
 }
 
+
 def _load_localized_university_names(search_lang: str) -> Dict[str, str]:
     lang = _normalize_search_lang(search_lang)
     if lang != SEARCH_LANG_RUS:
         return {}
     pack = _translation_lang_pack(lang)
-    names = pack.get("university_names") if isinstance(pack.get("university_names"), dict) else {}
+    names = (
+        pack.get("university_names")
+        if isinstance(pack.get("university_names"), dict)
+        else {}
+    )
     out: Dict[str, str] = {}
     for uni_id, uni_name in names.items():
         key = str(uni_id or "").strip()
@@ -530,7 +607,9 @@ def _load_localized_university_names(search_lang: str) -> Dict[str, str]:
     return out
 
 
-def _search_query_candidates(query: Any, search_lang: str = SEARCH_LANG_ENG) -> List[str]:
+def _search_query_candidates(
+    query: Any, search_lang: str = SEARCH_LANG_ENG
+) -> List[str]:
     raw = str(query or "").strip()
     if not raw:
         return []
@@ -554,7 +633,9 @@ def _search_query_candidates(query: Any, search_lang: str = SEARCH_LANG_ENG) -> 
             ck = _norm_space(canonical)
             if lk and ck:
                 alias_map[lk] = ck
-    for localized, canonical in (_MAJOR_QUERY_ALIASES_BY_LANG.get(lang, {}) or {}).items():
+    for localized, canonical in (
+        _MAJOR_QUERY_ALIASES_BY_LANG.get(lang, {}) or {}
+    ).items():
         lk = _norm_space(localized)
         ck = _norm_space(canonical)
         if lk and ck:
@@ -611,7 +692,9 @@ def _to_bool(x: Any) -> bool:
     return bool(x)
 
 
-def _effective_university_cost(u: Dict[str, Any], format_preference: Any = "any") -> float:
+def _effective_university_cost(
+    u: Dict[str, Any], format_preference: Any = "any"
+) -> float:
     mode = _normalize_study_mode(format_preference)
     finance = u.get("finance") if isinstance(u.get("finance"), dict) else {}
     total = _to_float(finance.get("total_cost_year_usd")) or 0.0
@@ -622,7 +705,9 @@ def _effective_university_cost(u: Dict[str, Any], format_preference: Any = "any"
 
     if mode == "online":
         mode_breakdown = _mode_breakdown_from_finance(finance, "online")
-        mode_tuition = _extract_tuition_cost(mode_breakdown if isinstance(mode_breakdown, dict) else {})
+        mode_tuition = _extract_tuition_cost(
+            mode_breakdown if isinstance(mode_breakdown, dict) else {}
+        )
         if mode_tuition is not None and mode_tuition >= 0:
             return max(0.0, mode_tuition)
         if tuition is not None and tuition >= 0:
@@ -681,17 +766,52 @@ _MAJOR_PHRASES: Dict[str, List[str]] = {
     ],
     "business": ["business", "management", "finance", "marketing", "accounting", "mba"],
     "medicine": ["medicine", "medical", "clinical", "nursing", "pharmacy", "dentistry"],
-    "natural sciences": ["natural sciences", "natural science", "chemistry", "earth science", "environmental science"],
+    "natural sciences": [
+        "natural sciences",
+        "natural science",
+        "chemistry",
+        "earth science",
+        "environmental science",
+    ],
     "economics": ["economics", "economy", "econometrics"],
     "physics": ["physics", "astrophysics"],
     "mathematics": ["mathematics", "math", "statistics", "actuarial"],
     "law": ["law", "legal", "jurisprudence", "llb", "jd"],
-    "social sciences": ["social sciences", "social science", "sociology", "political science", "anthropology"],
+    "social sciences": [
+        "social sciences",
+        "social science",
+        "sociology",
+        "political science",
+        "anthropology",
+    ],
     "architecture": ["architecture", "urban planning", "built environment"],
     "psychology": ["psychology", "psychological"],
-    "humanities": ["humanities", "history", "philosophy", "linguistics", "literature", "classics"],
-    "design": ["design", "graphic design", "industrial design", "interaction design", "ux", "ui", "product design"],
-    "life sciences": ["life sciences", "life science", "biology", "biotechnology", "biomedical", "genetics", "neuroscience"],
+    "humanities": [
+        "humanities",
+        "history",
+        "philosophy",
+        "linguistics",
+        "literature",
+        "classics",
+    ],
+    "design": [
+        "design",
+        "graphic design",
+        "industrial design",
+        "interaction design",
+        "ux",
+        "ui",
+        "product design",
+    ],
+    "life sciences": [
+        "life sciences",
+        "life science",
+        "biology",
+        "biotechnology",
+        "biomedical",
+        "genetics",
+        "neuroscience",
+    ],
     "education": ["education", "teaching", "pedagogy", "curriculum", "teacher"],
     "agriculture": ["agriculture", "agricultural", "agronomy", "horticulture"],
 }
@@ -820,7 +940,9 @@ def _is_language_exam_key_for_track_merge(exam_id: Any) -> bool:
     )
 
 
-def _filter_variant_stats_avg_for_requirements(stats_avg: Any, requirements: Any) -> Any:
+def _filter_variant_stats_avg_for_requirements(
+    stats_avg: Any, requirements: Any
+) -> Any:
     if not isinstance(stats_avg, dict):
         return copy.deepcopy(stats_avg)
     if not isinstance(requirements, dict) or not requirements:
@@ -831,7 +953,9 @@ def _filter_variant_stats_avg_for_requirements(stats_avg: Any, requirements: Any
         for key in requirements.keys()
         if not _is_language_exam_key_for_track_merge(key)
     }
-    allowed_keys = {str(key or "").strip().upper() for key in allowed_keys if str(key or "").strip()}
+    allowed_keys = {
+        str(key or "").strip().upper() for key in allowed_keys if str(key or "").strip()
+    }
     if not allowed_keys:
         return copy.deepcopy(stats_avg)
 
@@ -848,7 +972,11 @@ def _expand_track_funding_options(track: Dict[str, Any]) -> List[Dict[str, Any]]
         return []
 
     raw_options = track.get("funding_options")
-    options = [row for row in raw_options if isinstance(row, dict)] if isinstance(raw_options, list) else []
+    options = (
+        [row for row in raw_options if isinstance(row, dict)]
+        if isinstance(raw_options, list)
+        else []
+    )
     if not options:
         return [copy.deepcopy(track)]
 
@@ -912,7 +1040,9 @@ def expand_admission_track_variants(tracks: Any) -> List[Dict[str, Any]]:
     return expanded
 
 
-def _derive_track_applicable_majors(u: Dict[str, Any], track: Dict[str, Any]) -> List[str]:
+def _derive_track_applicable_majors(
+    u: Dict[str, Any], track: Dict[str, Any]
+) -> List[str]:
     explicit = track.get("applicable_majors")
     if isinstance(explicit, list) and explicit:
         return _uniq_non_empty(explicit)
@@ -940,7 +1070,9 @@ def _derive_track_applicable_majors(u: Dict[str, Any], track: Dict[str, Any]) ->
     if matched_programs:
         return matched_programs
 
-    foundation_programs = [name for name in program_names if _is_foundation_program_name(name)]
+    foundation_programs = [
+        name for name in program_names if _is_foundation_program_name(name)
+    ]
     non_foundation_programs = [
         name for name in program_names if not _is_foundation_program_name(name)
     ]
@@ -957,7 +1089,9 @@ def _derive_track_applicable_majors(u: Dict[str, Any], track: Dict[str, Any]) ->
     return program_names
 
 
-def _should_keep_track_for_product_scope(u: Dict[str, Any], track: Dict[str, Any]) -> bool:
+def _should_keep_track_for_product_scope(
+    u: Dict[str, Any], track: Dict[str, Any]
+) -> bool:
     majors = track.get("applicable_majors")
     if not isinstance(majors, list) or not majors:
         return True
@@ -1008,7 +1142,9 @@ def _track_primary_exam_id(track: Dict[str, Any]) -> str:
     return candidates[0] if candidates else ""
 
 
-def _score_profile_program_matches_track(track: Dict[str, Any], program: Dict[str, Any]) -> bool:
+def _score_profile_program_matches_track(
+    track: Dict[str, Any], program: Dict[str, Any]
+) -> bool:
     if not isinstance(track, dict) or not isinstance(program, dict):
         return False
     program_name = str(program.get("program_name") or program.get("name") or "").strip()
@@ -1031,14 +1167,22 @@ def _score_profile_program_matches_track(track: Dict[str, Any], program: Dict[st
                 return True
             major_canonical = _canonical_major(major_text)
             program_canonical = _canonical_major(program_name)
-            if major_canonical and program_canonical and major_canonical == program_canonical:
+            if (
+                major_canonical
+                and program_canonical
+                and major_canonical == program_canonical
+            ):
                 return True
 
     label_norm = _normalize_major_text(track.get("label"))
-    return bool(label_norm and _contains_phrase(label_norm, _normalize_major_text(program_name)))
+    return bool(
+        label_norm and _contains_phrase(label_norm, _normalize_major_text(program_name))
+    )
 
 
-def _score_profile_route_matches_track(track: Dict[str, Any], program: Dict[str, Any]) -> bool:
+def _score_profile_route_matches_track(
+    track: Dict[str, Any], program: Dict[str, Any]
+) -> bool:
     track_blob = _normalize_major_text(
         " ".join(
             str(part or "")
@@ -1111,7 +1255,9 @@ def _weighted_total_scale_max(counts: Dict[str, Any]) -> Optional[float]:
     return round(total_weight * 7.0, 4)
 
 
-def _score_scale(metric_id: str, counts: Dict[str, Any]) -> Optional[Tuple[float, float, str]]:
+def _score_scale(
+    metric_id: str, counts: Dict[str, Any]
+) -> Optional[Tuple[float, float, str]]:
     resolved = exams_service.resolve_exam_key(metric_id)
     cfg = exams_service.EXAMS_CONFIG.get(resolved) if resolved else None
     if isinstance(cfg, dict) and str(cfg.get("type") or "").strip().lower() != "bool":
@@ -1138,7 +1284,9 @@ def _normalize_score_value(raw_value: float, scale: Tuple[float, float, str]) ->
     return max(0.0, min(100.0, ((float(raw_value) - mn) / max(mx - mn, 1e-9)) * 100.0))
 
 
-def _extract_track_score_percentiles(counts: Dict[str, Any]) -> Optional[Dict[str, float]]:
+def _extract_track_score_percentiles(
+    counts: Dict[str, Any],
+) -> Optional[Dict[str, float]]:
     if not isinstance(counts, dict):
         return None
 
@@ -1180,7 +1328,9 @@ def _extract_track_score_percentiles(counts: Dict[str, Any]) -> Optional[Dict[st
     return None
 
 
-def _derive_track_score_profile(u: Dict[str, Any], track: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _derive_track_score_profile(
+    u: Dict[str, Any], track: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
     explicit = track.get("score_profile")
     if isinstance(explicit, dict) and explicit:
         return explicit
@@ -1220,28 +1370,46 @@ def _derive_track_score_profile(u: Dict[str, Any], track: Dict[str, Any]) -> Opt
             continue
 
         metric_exam_id = str(scale[2] or "").strip().upper()
-        resolved_primary_exam_id = str(exams_service.resolve_exam_key(primary_exam_id) or "").strip().upper()
+        resolved_primary_exam_id = (
+            str(exams_service.resolve_exam_key(primary_exam_id) or "").strip().upper()
+        )
         compatible_exam_ids = []
         if metric_exam_id:
             compatible_exam_ids.append(metric_exam_id)
-            if resolved_primary_exam_id and resolved_primary_exam_id == metric_exam_id and resolved_primary_exam_id not in compatible_exam_ids:
+            if (
+                resolved_primary_exam_id
+                and resolved_primary_exam_id == metric_exam_id
+                and resolved_primary_exam_id not in compatible_exam_ids
+            ):
                 compatible_exam_ids.append(resolved_primary_exam_id)
 
         provenance = program.get("provenance")
         provenance = provenance if isinstance(provenance, dict) else {}
-        uses_exam_anchor = bool(metric_exam_id) and exams_service.exam_supports_percentile_normalization(metric_exam_id)
+        uses_exam_anchor = bool(
+            metric_exam_id
+        ) and exams_service.exam_supports_percentile_normalization(metric_exam_id)
         profile = {
             "metric_id": str(extracted.get("metric_id") or ""),
             "metric_unit": str(program.get("metric_unit") or ""),
             "p25_raw": round(float(extracted["p25_raw"]), 2),
             "median_raw": round(float(extracted["median_raw"]), 2),
             "p75_raw": round(float(extracted["p75_raw"]), 2),
-            "p25_normalized": round(_normalize_score_value(float(extracted["p25_raw"]), scale), 2),
-            "median_normalized": round(_normalize_score_value(float(extracted["median_raw"]), scale), 2),
-            "p75_normalized": round(_normalize_score_value(float(extracted["p75_raw"]), scale), 2),
+            "p25_normalized": round(
+                _normalize_score_value(float(extracted["p25_raw"]), scale), 2
+            ),
+            "median_normalized": round(
+                _normalize_score_value(float(extracted["median_raw"]), scale), 2
+            ),
+            "p75_normalized": round(
+                _normalize_score_value(float(extracted["p75_raw"]), scale), 2
+            ),
             "confidence": str(provenance.get("confidence") or "estimated"),
-            "source_program_name": str(program.get("program_name") or program.get("name") or ""),
-            "source_scope": str(program.get("source_scope") or program.get("scope") or ""),
+            "source_program_name": str(
+                program.get("program_name") or program.get("name") or ""
+            ),
+            "source_scope": str(
+                program.get("source_scope") or program.get("scope") or ""
+            ),
             "source_url": str(provenance.get("source_url") or ""),
             "normalization_method": (
                 "exam_anchor_percentile"
@@ -1271,7 +1439,9 @@ def _is_foundation_program_row(program: Dict[str, Any]) -> bool:
         return True
 
     levels = program.get("study_levels")
-    if isinstance(levels, list) and any(_is_foundation_study_level(level) for level in levels):
+    if isinstance(levels, list) and any(
+        _is_foundation_study_level(level) for level in levels
+    ):
         return True
     if levels is not None and _is_foundation_study_level(levels):
         return True
@@ -1311,7 +1481,9 @@ def _filter_academics_for_product_scope(academics: Dict[str, Any]) -> None:
                 row
                 for row in admissions_programs
                 if isinstance(row, dict)
-                and not _is_foundation_program_name(row.get("program_name") or row.get("name"))
+                and not _is_foundation_program_name(
+                    row.get("program_name") or row.get("name")
+                )
             ]
 
 
@@ -1332,7 +1504,11 @@ def _normalize_university_schema(u: Dict[str, Any]) -> Dict[str, Any]:
         u["academics"] = academics
 
     programs_raw = academics.get("programs", [])
-    programs = [p for p in programs_raw if isinstance(p, dict)] if isinstance(programs_raw, list) else []
+    programs = (
+        [p for p in programs_raw if isinstance(p, dict)]
+        if isinstance(programs_raw, list)
+        else []
+    )
 
     majors = academics.get("majors")
     if not isinstance(majors, list) or len(majors) == 0:
@@ -1387,7 +1563,9 @@ def _normalize_university_schema(u: Dict[str, Any]) -> Dict[str, Any]:
                 exam_id = sp.get("exam_id")
                 median = sp.get("median_raw")
                 if exam_id and median is not None:
-                    if "stats_avg" not in track or not isinstance(track["stats_avg"], dict):
+                    if "stats_avg" not in track or not isinstance(
+                        track["stats_avg"], dict
+                    ):
                         track["stats_avg"] = {}
                     if exam_id not in track["stats_avg"]:
                         track["stats_avg"][exam_id] = median
@@ -1400,7 +1578,11 @@ def _normalize_university_schema(u: Dict[str, Any]) -> Dict[str, Any]:
                     if not isinstance(raw_option, dict):
                         continue
                     option = copy.deepcopy(raw_option)
-                    variant = expanded_options[option_idx] if option_idx < len(expanded_options) else None
+                    variant = (
+                        expanded_options[option_idx]
+                        if option_idx < len(expanded_options)
+                        else None
+                    )
                     if isinstance(variant, dict):
                         option_majors = variant.get("applicable_majors")
                         if isinstance(option_majors, list) and option_majors:
@@ -1409,8 +1591,13 @@ def _normalize_university_schema(u: Dict[str, Any]) -> Dict[str, Any]:
                         if isinstance(option_stats_avg, dict):
                             option["stats_avg"] = copy.deepcopy(option_stats_avg)
                         option_score_profile = variant.get("score_profile")
-                        if isinstance(option_score_profile, dict) and option_score_profile:
-                            option["score_profile"] = copy.deepcopy(option_score_profile)
+                        if (
+                            isinstance(option_score_profile, dict)
+                            and option_score_profile
+                        ):
+                            option["score_profile"] = copy.deepcopy(
+                                option_score_profile
+                            )
                     normalized_options.append(option)
                 track["funding_options"] = normalized_options
 
@@ -1423,7 +1610,9 @@ def _normalize_university_schema(u: Dict[str, Any]) -> Dict[str, Any]:
     return u
 
 
-def _build_university_meta(u: Dict[str, Any]) -> Dict[str, Any]:
+def _build_university_meta(
+    u: Dict[str, Any], rus_names: Optional[Dict[str, str]] = None
+) -> Dict[str, Any]:
     programs = _iter_programs(u)
     majors = _get_list(u, ["academics", "majors"])
     explicit_major_tags = _get_list(u, ["academics", "major_tags"])
@@ -1448,33 +1637,48 @@ def _build_university_meta(u: Dict[str, Any]) -> Dict[str, Any]:
     major_exact = _uniq_non_empty(
         [
             tag
-            for value in (majors + program_names + explicit_major_tags + program_major_tags)
+            for value in (
+                majors + program_names + explicit_major_tags + program_major_tags
+            )
             for tag in _major_tags_from_text(value)
         ]
     )
     uni_id = str(u.get("id", "")).strip()
-    rus_names = _load_localized_university_names(SEARCH_LANG_RUS)
+    if rus_names is None:
+        rus_names = _load_localized_university_names(SEARCH_LANG_RUS)
 
     country_key = _norm_space(_get_nested(u, ["location", "country"]))
     city_key = _norm_space(_get_nested(u, ["location", "city"]))
     state_key = _norm_space(_get_nested(u, ["location", "state"]))
     description = _safe_lower(u.get("description"))
-    raw_tags = [str(x or "").strip() for x in (u.get("tags") or []) if str(x or "").strip()]
+    raw_tags = [
+        str(x or "").strip() for x in (u.get("tags") or []) if str(x or "").strip()
+    ]
     hidden_search_aliases = _hidden_search_aliases_for_university(u)
     tag_keys = [_norm_tag_key(x) for x in raw_tags if _norm_tag_key(x)]
 
     major_exact_rus = _uniq_non_empty(
-        [_MAJOR_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(_safe_lower(x), "") for x in major_exact if x]
+        [
+            _MAJOR_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(_safe_lower(x), "")
+            for x in major_exact
+            if x
+        ]
     )
     tags_rus = _uniq_non_empty(
-        [_TAG_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(_norm_tag_key(x), "") for x in tag_keys if x]
+        [
+            _TAG_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(_norm_tag_key(x), "")
+            for x in tag_keys
+            if x
+        ]
     )
     name_raw = _safe_lower(u.get("name"))
     city_raw = _safe_lower(_get_nested(u, ["location", "city"]))
     country_raw = _safe_lower(_get_nested(u, ["location", "country"]))
     name_rus = _safe_lower(rus_names.get(uni_id, ""))
     city_rus = _safe_lower(_CITY_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(city_key, ""))
-    country_rus = _safe_lower(_COUNTRY_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(country_key, ""))
+    country_rus = _safe_lower(
+        _COUNTRY_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(country_key, "")
+    )
     description_rus = _norm_space(
         f"{name_rus or name_raw} {city_rus or city_raw} {country_rus or country_raw} {' '.join(tags_rus)}"
     )
@@ -1487,7 +1691,9 @@ def _build_university_meta(u: Dict[str, Any]) -> Dict[str, Any]:
         "city": _safe_lower(_get_nested(u, ["location", "city"])),
         "city_rus": city_rus,
         "state": _safe_lower(_get_nested(u, ["location", "state"])),
-        "state_rus": _safe_lower(_STATE_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(state_key, "")),
+        "state_rus": _safe_lower(
+            _STATE_LOCALIZED_BY_LANG[SEARCH_LANG_RUS].get(state_key, "")
+        ),
         "description": description,
         "description_rus": description_rus,
         "search_aliases": [_safe_lower(x) for x in hidden_search_aliases if x],
@@ -1498,8 +1704,10 @@ def _build_university_meta(u: Dict[str, Any]) -> Dict[str, Any]:
         "program_names": [_safe_lower(x) for x in program_names if x],
         "major_exact": [_safe_lower(x) for x in major_exact if x],
         "major_exact_rus": [_safe_lower(x) for x in major_exact_rus if x],
-        "study_levels": [_safe_lower(x) for x in study_levels if x] + [_safe_lower(x) for x in program_levels if x],
-        "formats": [_safe_lower(x) for x in formats if x] + [_safe_lower(x) for x in program_formats if x],
+        "study_levels": [_safe_lower(x) for x in study_levels if x]
+        + [_safe_lower(x) for x in program_levels if x],
+        "formats": [_safe_lower(x) for x in formats if x]
+        + [_safe_lower(x) for x in program_formats if x],
     }
 
 
@@ -1511,20 +1719,34 @@ def _meta_for_search_lang(meta_row: Dict[str, Any], search_lang: str) -> Dict[st
     out = dict(meta_row)
 
     def merged_text(*values: Any) -> str:
-        vals = _uniq_non_empty([str(v or "").strip() for v in values if str(v or "").strip()])
+        vals = _uniq_non_empty(
+            [str(v or "").strip() for v in values if str(v or "").strip()]
+        )
         return " ".join(vals).strip()
 
     out["name"] = merged_text(meta_row.get("name"), meta_row.get("name_rus", ""))
-    out["country"] = merged_text(meta_row.get("country"), meta_row.get("country_rus", ""))
+    out["country"] = merged_text(
+        meta_row.get("country"), meta_row.get("country_rus", "")
+    )
     out["city"] = merged_text(meta_row.get("city"), meta_row.get("city_rus", ""))
     out["state"] = merged_text(meta_row.get("state"), meta_row.get("state_rus", ""))
-    out["description"] = merged_text(meta_row.get("description"), meta_row.get("description_rus", ""))
-    out["tags"] = _uniq_non_empty(list(meta_row.get("tags", []) or []) + list(meta_row.get("tags_rus", []) or []))
+    out["description"] = merged_text(
+        meta_row.get("description"), meta_row.get("description_rus", "")
+    )
+    out["tags"] = _uniq_non_empty(
+        list(meta_row.get("tags", []) or []) + list(meta_row.get("tags_rus", []) or [])
+    )
 
     localized_major_exact = list(meta_row.get("major_exact_rus", []) or [])
-    out["major_exact"] = _uniq_non_empty(list(meta_row.get("major_exact", []) or []) + localized_major_exact)
-    out["majors"] = _uniq_non_empty(list(meta_row.get("majors", []) or []) + localized_major_exact)
-    out["program_names"] = _uniq_non_empty(list(meta_row.get("program_names", []) or []) + localized_major_exact)
+    out["major_exact"] = _uniq_non_empty(
+        list(meta_row.get("major_exact", []) or []) + localized_major_exact
+    )
+    out["majors"] = _uniq_non_empty(
+        list(meta_row.get("majors", []) or []) + localized_major_exact
+    )
+    out["program_names"] = _uniq_non_empty(
+        list(meta_row.get("program_names", []) or []) + localized_major_exact
+    )
     return out
 
 
@@ -1586,7 +1808,9 @@ def _rank_meta_from_university(u: Dict[str, Any]) -> Dict[str, Any]:
         "verified_at": str(rank_fact.get("verified_at") or ""),
         "is_official_external_rank": bool(rank_fact.get("is_official_external_rank")),
     }
-    if not any(bool(str(v).strip()) for k, v in out.items() if k != "is_official_external_rank"):
+    if not any(
+        bool(str(v).strip()) for k, v in out.items() if k != "is_official_external_rank"
+    ):
         return {}
     return out
 
@@ -1631,7 +1855,9 @@ def to_university_card(
             "state": state_value,
         },
         "finance": {
-            "total_cost_year_usd": _effective_university_cost(u, format_preference=format_preference),
+            "total_cost_year_usd": _effective_university_cost(
+                u, format_preference=format_preference
+            ),
             "financial_aid": {
                 "merit_based": _to_bool(aid_obj.get("merit_based")),
                 "need_based": _to_bool(aid_obj.get("need_based")),
@@ -1640,7 +1866,9 @@ def to_university_card(
         "academics": {
             "acceptance_rate_percent": _get_university_acceptance_rate(u),
         },
-        "search_aliases": [_safe_lower(x) for x in _hidden_search_aliases_for_university(u)],
+        "search_aliases": [
+            _safe_lower(x) for x in _hidden_search_aliases_for_university(u)
+        ],
         "aid_any": _has_any_aid(u),
     }
     rank_meta = _rank_meta_from_university(u)
@@ -1667,7 +1895,12 @@ def _project_universities(
 ) -> List[Dict[str, Any]]:
     mode = _safe_lower(response_mode)
     if mode == "card":
-        return [to_university_card(u, format_preference=format_preference, search_lang=search_lang) for u in items]
+        return [
+            to_university_card(
+                u, format_preference=format_preference, search_lang=search_lang
+            )
+            for u in items
+        ]
     lang = _normalize_search_lang(search_lang)
     if lang == SEARCH_LANG_ENG:
         return items
@@ -1686,7 +1919,9 @@ def _safe_compare_gte(value: Optional[float], threshold: float) -> bool:
     return value >= threshold
 
 
-def _apply_sort(items: List[Dict[str, Any]], sort: str, format_preference: Any = "any") -> List[Dict[str, Any]]:
+def _apply_sort(
+    items: List[Dict[str, Any]], sort: str, format_preference: Any = "any"
+) -> List[Dict[str, Any]]:
     sort = (sort or "").strip()
 
     def get_val(u, path):
@@ -1696,22 +1931,41 @@ def _apply_sort(items: List[Dict[str, Any]], sort: str, format_preference: Any =
         return sorted(items, key=lambda u: _safe_lower(u.get("name")))
 
     if sort == "tuition_asc":
-        return sorted(items, key=lambda u: _effective_university_cost(u, format_preference=format_preference))
+        return sorted(
+            items,
+            key=lambda u: _effective_university_cost(
+                u, format_preference=format_preference
+            ),
+        )
     if sort == "tuition_desc":
-        return sorted(items, key=lambda u: _effective_university_cost(u, format_preference=format_preference), reverse=True)
+        return sorted(
+            items,
+            key=lambda u: _effective_university_cost(
+                u, format_preference=format_preference
+            ),
+            reverse=True,
+        )
 
     if sort == "acceptance_asc":
         return sorted(items, key=lambda u: (_get_university_acceptance_rate(u) or 0.0))
     if sort == "acceptance_desc":
-        return sorted(items, key=lambda u: (_get_university_acceptance_rate(u) or 0.0), reverse=True)
+        return sorted(
+            items,
+            key=lambda u: (_get_university_acceptance_rate(u) or 0.0),
+            reverse=True,
+        )
 
     if sort == "rank_asc":
         return sorted(items, key=lambda u: (_to_float(u.get("rank")) or 999999.0))
     if sort == "rank_desc":
-        return sorted(items, key=lambda u: (_to_float(u.get("rank")) or 0.0), reverse=True)
+        return sorted(
+            items, key=lambda u: (_to_float(u.get("rank")) or 0.0), reverse=True
+        )
 
     if sort == "gpa_desc":
-        return sorted(items, key=lambda u: get_val(u, ["exams_avg", "GPA"]), reverse=True)
+        return sorted(
+            items, key=lambda u: get_val(u, ["exams_avg", "GPA"]), reverse=True
+        )
 
     return sorted(items, key=lambda u: _safe_lower(u.get("name")))
 
@@ -1740,12 +1994,13 @@ def _load_universities_cached() -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
         meta_list: List[Dict[str, Any]] = []
         by_id: Dict[str, Dict[str, Any]] = {}
+        rus_names = _load_localized_university_names(SEARCH_LANG_RUS)
         for row in data:
             if not isinstance(row, dict):
                 continue
             norm = _normalize_university_schema(row)
             out.append(norm)
-            meta_list.append(_build_university_meta(norm))
+            meta_list.append(_build_university_meta(norm, rus_names=rus_names))
             uid = str(norm.get("id", "")).strip()
             if uid:
                 by_id[uid] = norm
@@ -1792,12 +2047,16 @@ def get_university_etag(university_id: str, search_lang: Optional[str] = None) -
     # Include the derived detail representation version so cache invalidation
     # also happens when backend normalization changes without a data-file mtime bump.
     digest = hashlib.sha256(
-        f"{mtime_key}:{tr_key}:{uid}:{lang}:{UNIVERSITY_DETAIL_REPR_VERSION}".encode("utf-8")
+        f"{mtime_key}:{tr_key}:{uid}:{lang}:{UNIVERSITY_DETAIL_REPR_VERSION}".encode(
+            "utf-8"
+        )
     ).hexdigest()
-    return f"\"{digest}\""
+    return f'"{digest}"'
 
 
-def get_university_translation_bundle(search_lang: Optional[str] = None) -> Dict[str, Any]:
+def get_university_translation_bundle(
+    search_lang: Optional[str] = None,
+) -> Dict[str, Any]:
     lang = _normalize_search_lang(search_lang)
     raw = _load_university_translations_raw()
     langs = raw.get("languages") if isinstance(raw.get("languages"), dict) else {}
@@ -1903,13 +2162,31 @@ def list_universities(
         cit = _safe_lower(city) if city else None
 
         if reg and cc and cit:
-            pairs = [(u, m) for u, m in pairs if m.get("state", "") == reg and m.get("country", "") == cc and m.get("city", "") == cit]
+            pairs = [
+                (u, m)
+                for u, m in pairs
+                if m.get("state", "") == reg
+                and m.get("country", "") == cc
+                and m.get("city", "") == cit
+            ]
         elif reg and cc:
-            pairs = [(u, m) for u, m in pairs if m.get("state", "") == reg and m.get("country", "") == cc]
+            pairs = [
+                (u, m)
+                for u, m in pairs
+                if m.get("state", "") == reg and m.get("country", "") == cc
+            ]
         elif reg and cit:
-            pairs = [(u, m) for u, m in pairs if m.get("state", "") == reg and m.get("city", "") == cit]
+            pairs = [
+                (u, m)
+                for u, m in pairs
+                if m.get("state", "") == reg and m.get("city", "") == cit
+            ]
         elif cc and cit:
-            pairs = [(u, m) for u, m in pairs if m.get("country", "") == cc and m.get("city", "") == cit]
+            pairs = [
+                (u, m)
+                for u, m in pairs
+                if m.get("country", "") == cc and m.get("city", "") == cit
+            ]
         elif reg:
             pairs = [(u, m) for u, m in pairs if m.get("state", "") == reg]
         elif cc:
@@ -1924,12 +2201,21 @@ def list_universities(
             (u, meta_row)
             for (u, meta_row) in pairs
             if (
-                (bool(m_exact) and any(x == m_exact for x in meta_row.get("major_exact", [])))
+                (
+                    bool(m_exact)
+                    and any(x == m_exact for x in meta_row.get("major_exact", []))
+                )
                 or (
                     not m_exact
                     and (
-                        any(_normalize_major_text(x) == m_raw for x in meta_row.get("majors", []))
-                        or any(_normalize_major_text(x) == m_raw for x in meta_row.get("program_names", []))
+                        any(
+                            _normalize_major_text(x) == m_raw
+                            for x in meta_row.get("majors", [])
+                        )
+                        or any(
+                            _normalize_major_text(x) == m_raw
+                            for x in meta_row.get("program_names", [])
+                        )
                     )
                 )
             )
@@ -1967,7 +2253,9 @@ def list_universities(
     if user_budget is not None:
         filtered = []
         for u, m in pairs:
-            cost = _effective_university_cost(u, format_preference=mode_pref) or 999999.0
+            cost = (
+                _effective_university_cost(u, format_preference=mode_pref) or 999999.0
+            )
             fa = _get_nested(u, ["finance", "financial_aid"], {})
             aid = fa.get("merit_based") or fa.get("need_based")
             if cost <= user_budget or aid:
@@ -1985,11 +2273,18 @@ def list_universities(
             filtered.append((u, m))
         pairs = filtered
 
-
     if min_acceptance is not None:
-        pairs = [(u, m) for (u, m) in pairs if _safe_compare_gte(_get_university_acceptance_rate(u), min_acceptance)]
+        pairs = [
+            (u, m)
+            for (u, m) in pairs
+            if _safe_compare_gte(_get_university_acceptance_rate(u), min_acceptance)
+        ]
     if max_acceptance is not None:
-        pairs = [(u, m) for (u, m) in pairs if _safe_compare_lte(_get_university_acceptance_rate(u), max_acceptance)]
+        pairs = [
+            (u, m)
+            for (u, m) in pairs
+            if _safe_compare_lte(_get_university_acceptance_rate(u), max_acceptance)
+        ]
 
     if size:
         ss = _safe_lower(size)
