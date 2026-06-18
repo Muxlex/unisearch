@@ -18,6 +18,14 @@ Core capabilities:
 - ROI estimate per university
 - multilingual UI (`eng`, `ru`) with backend-driven localization
 
+## Release downloads
+GitHub Releases show both UniSearch release assets and GitHub's automatic source archives.
+
+- Local development / full project: download `unisearch-full-vX.Y.Z.zip` from the release assets, or use GitHub's automatic `Source code (zip)`. This is the right package for the Quick start and Run locally steps below.
+- Static frontend deploy: download `unisearch-frontend-vX.Y.Z.zip` only when you are deploying the static UI and already have a backend URL or reverse proxy configured.
+- Backend deploy: download `unisearch-backend-vX.Y.Z.zip` only when you are deploying the FastAPI backend package separately.
+- GitHub's automatic `Source code (zip)` and `Source code (tar.gz)` links are expected on every release and cannot be removed.
+
 ## Quick start
 If you just want the project running locally from a fresh clone:
 
@@ -64,6 +72,7 @@ Prerequisites:
 
 ## Read me by task
 - First local launch: see [Run locally](#run-locally)
+- Release asset choices: see [Release downloads](#release-downloads)
 - Runtime and env vars: see [Environment configuration](#environment-configuration)
 - Curated data workflow: see [Data maintenance and provenance](#data-maintenance-and-provenance)
 - Tests and CI: see [Testing](#testing) and [CI policy](#ci-policy)
@@ -73,7 +82,7 @@ Prerequisites:
 
 ## Project snapshot
 - Product scope is bachelor-level university discovery and decision support.
-- Current catalog coverage: 40 universities across 13 countries.
+- Current catalog coverage: 50 universities across 13 countries.
 - Business logic and data shaping live in the FastAPI backend; the frontend is static Vanilla JS/HTML/CSS.
 - UI languages are English (`eng`) and Russian (`ru`), with university translations served by `/universities/translations`.
 - University facts and admissions data are conservative: official sources only, with missing values preferred over guesses.
@@ -102,6 +111,7 @@ Storage:
 - `backend/data/university_assets/logos/`
 - `backend/data/university_assets/logos-small/`
 - `backend/data/university_assets/thumbnails/`
+- `backend/data/university_assets/thumbnails-medium/`
 - `backend/data/university_assets/thumbnails-small/`
 
 Serving:
@@ -110,6 +120,20 @@ Serving:
 Example URLs:
 - `/universities/assets/logos-small/mit-usa-cambridge.png`
 - `/universities/assets/thumbnails/mit-usa-cambridge.jpg`
+- `/universities/assets/thumbnails/mit-usa-cambridge.webp`
+
+Thumbnail size contract:
+- `thumbnails/`: 1600x900 JPG + WebP for detail-page hero media
+- `thumbnails-medium/`: 960x540 JPG + WebP for responsive desktop/card media
+- `thumbnails-small/`: 640x360 JPG + WebP for compact catalog and ranking cards
+
+JPG files stay as source/fallback assets. WebP files are the preferred frontend delivery format.
+
+Before committing media changes, run:
+```bash
+npm run audit:images
+```
+The audit checks dimensions, byte-size contracts, WebP/JPG fallback pairs, and decoded WebP visual similarity against the JPG fallback.
 
 ## API overview
 General:
@@ -456,13 +480,32 @@ Check the following:
 Canonical release history lives in [CHANGELOG.md](CHANGELOG.md).
 
 Recent releases:
+- `4.9.6` on `2026-06-18`
+- `4.9.5` on `2026-06-18`
+- `4.9.4` on `2026-06-18`
+- `4.9.3` on `2026-06-18`
+- `4.9.2` on `2026-06-18`
+- `4.9.1` on `2026-06-17`
+- `4.9.0` on `2026-06-17`
+- `4.8.0` on `2026-06-01`
+- `4.7.2` on `2026-05-31`
+- `4.7.1` on `2026-05-31`
+- `4.7.0` on `2026-05-31`
+- `4.6.1` on `2026-05-31`
+- `4.6.0` on `2026-05-30`
+- `4.5.2` on `2026-05-26`
+- `4.5.1` on `2026-05-25`
+- `4.5.0` on `2026-05-24`
+- `4.4.0` on `2026-05-24`
+- `4.3.0` on `2026-05-24`
+- `4.2.0` on `2026-05-24`
+- `4.0.0` on `2026-05-20`
+- `3.9.2` on `2026-05-14`
+- `3.9.1` on `2026-05-13`
+- `3.9.0` on `2026-05-13`
 - `3.8.2` on `2026-05-01`
 - `3.8.1` on `2026-05-01`
 - `3.8.0` on `2026-04-30`
-- `3.7.9` on `2026-04-30`
-- `3.7.8` on `2026-04-30`
-- `3.7.7` on `2026-04-29`
-- `3.7.6` on `2026-04-29`
 - `3.7.5` on `2026-04-28`
 - `3.7.4` on `2026-04-28`
 - `3.7.2` on `2026-04-24`

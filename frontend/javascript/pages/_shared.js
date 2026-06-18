@@ -14,8 +14,6 @@ import {
   moneyUSD,
   loadProfile,
   loadProfileForApi,
-  getSelectedAdmissionTrack,
-  saveSelectedAdmissionTrack,
   getFlagImg,
   initCustomSelect,
   CITY_OPTIONS_BY_COUNTRY,
@@ -34,7 +32,6 @@ import {
   applyPercentWidths,
   clusterMarkerLogoHtml,
   getTrackFundingType,
-  getTrackFundingOptions,
   mapMarkerLogoHtml,
   renderExamGroup,
   renderGroupedExamPairRows,
@@ -42,7 +39,6 @@ import {
   renderTrackFundingBadge,
   renderUniChanceSummary,
   splitExamEntries,
-  trackLookupKey,
 } from "../university-detail-helpers.js";
 
 import { setupTabs, renderNoConnection } from "../components.js";
@@ -1013,9 +1009,15 @@ export function fundingPreferenceToQueryValue(value) {
 
 export function uniThumbnailSrc(universityId, opts = {}) {
   const safeId = safePathSegment(universityId);
-  const forceFull = !!opts.forceFull;
-  const folder = forceFull ? "thumbnails" : "thumbnails-small";
-  return buildApiUrl(`universities/assets/${folder}/${safeId}.jpg`);
+  const size = String(opts.size || "").trim().toLowerCase();
+  const format = String(opts.format || "webp").trim().toLowerCase() === "jpg" ? "jpg" : "webp";
+  const forceFull = !!opts.forceFull || size === "full" || size === "large";
+  const folder = forceFull
+    ? "thumbnails"
+    : size === "medium"
+      ? "thumbnails-medium"
+      : "thumbnails-small";
+  return buildApiUrl(`universities/assets/${folder}/${safeId}.${format}`);
 }
 
 export function uniLogoSrc(universityId, opts = {}) {

@@ -38,7 +38,7 @@ export function prefersReducedMotion() {
 
 export function replayMotion(node, className, options = {}) {
   if (!node || !className || prefersReducedMotion()) return;
-  const timeoutMs = Number(options.timeoutMs || 700);
+  const timeoutMs = Number(options.timeoutMs || 560);
   node.classList.remove(className);
   void node.offsetWidth;
   node.classList.add(className);
@@ -48,14 +48,14 @@ export function replayMotion(node, className, options = {}) {
 }
 
 export function motionPress(node) {
-  replayMotion(node, "motion-press-pop", { timeoutMs: 320 });
+  replayMotion(node, "motion-press-pop", { timeoutMs: 260 });
 }
 
 export function markMotionEnter(root, selector = "", options = {}) {
   if (!root || prefersReducedMotion()) return;
   const className = String(options.className || "motion-list-item-enter");
   const staggerMs = Math.max(0, Number(options.staggerMs || 22));
-  const limit = Math.max(0, Number(options.limit || 18));
+  const limit = Math.max(0, Number(options.limit || 16));
   const nodes = selector ? Array.from(root.querySelectorAll(selector)) : [root];
 
   nodes.slice(0, limit || nodes.length).forEach((node, index) => {
@@ -69,7 +69,7 @@ export function markMotionEnter(root, selector = "", options = {}) {
       node.style.animationDelay = "";
     };
     node.addEventListener("animationend", cleanup, { once: true });
-    window.setTimeout(cleanup, 900);
+    window.setTimeout(cleanup, 760);
   });
 }
 
@@ -91,6 +91,33 @@ export function animateElementOut(node, callback, options = {}) {
   node.classList.add(className);
   node.addEventListener("animationend", finish, { once: true });
   window.setTimeout(finish, timeoutMs);
+}
+
+export function closeMotionLayer(node, finish, options = {}) {
+  if (!node) {
+    if (typeof finish === "function") finish();
+    return;
+  }
+
+  const className = String(options.className || "is-closing");
+  const timeoutMs = Number(options.timeoutMs || 180);
+  const shouldAnimate = !prefersReducedMotion() && node.classList.contains("is-open");
+
+  if (!shouldAnimate) {
+    if (typeof finish === "function") finish();
+    return;
+  }
+
+  let done = false;
+  const complete = () => {
+    if (done) return;
+    done = true;
+    node.classList.remove(className);
+    if (typeof finish === "function") finish();
+  };
+
+  node.classList.add(className);
+  window.setTimeout(complete, timeoutMs);
 }
 
 export function debounce(fn, ms = 250) {

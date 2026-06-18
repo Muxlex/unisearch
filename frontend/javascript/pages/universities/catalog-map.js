@@ -77,7 +77,7 @@ export function initMap(containerId = "mapContainer") {
       }
       const fallbackId = markers[0]?.options?.uniId || "default";
       const bestId = (best && best.id) ? best.id : fallbackId;
-      const logoUrl = uniLogoSrc(bestId);
+      const logoUrl = uniLogoSrc(bestId, { forceFull: true });
       return L.divIcon({
         html: clusterMarkerLogoHtml(logoUrl, count - 1),
         className: "cluster-icon-container",
@@ -91,14 +91,24 @@ export function initMap(containerId = "mapContainer") {
     mapInstance.flyToBounds(a.layer.getBounds(), { padding: [80, 80], duration: 1.0 });
   });
 
+  mapInstance.on('popupclose', (e) => {
+    if (markersByUniId.size === 0) return;
+    const source = e.popup && typeof e.popup.getSource === "function" ? e.popup.getSource() : e.popup?._source;
+    const closedUniId = source?.options?.uniId;
+    if (closedUniId && closedUniId === activeMapUniId) {
+      updateMapResultsSelection("");
+    }
+  });
+
   mapInstance.addLayer(markersLayer);
   return mapInstance;
 }
 
 export function updateMapResultsSelection(uniId, mapResultsContainer) {
   activeMapUniId = String(uniId || "").trim();
-  if (!mapResultsContainer) return;
-  mapResultsContainer.querySelectorAll(".u-map-result-card[data-uni-id]").forEach((card) => {
+  const container = mapResultsContainer || document.getElementById("mapResultsPanel");
+  if (!container) return;
+  container.querySelectorAll(".u-map-result-card[data-uni-id]").forEach((card) => {
     const isActive = card.getAttribute("data-uni-id") === activeMapUniId;
     card.classList.toggle("is-active", isActive);
   });
@@ -162,7 +172,7 @@ export function renderMapResultsPanel(container, items, options = {}) {
   const visibleItems = mappedItems.slice(0, 10);
   const preferredId = visibleItems.some((u) => String(u.id || "") === activeMapUniId)
     ? activeMapUniId
-    : (visibleItems.some((u) => String(u.id || "") === focusUniId) ? String(focusUniId || "") : String(visibleItems[0]?.id || ""));
+    : (visibleItems.some((u) => String(u.id || "") === focusUniId) ? String(focusUniId || "") : "");
   activeMapUniId = preferredId;
 
   container.innerHTML = `
@@ -307,7 +317,7 @@ export function updateMapMarkers(items, options = {}) {
       const uniId = String(u.id || "");
       const customIcon = L.divIcon({
         className: "custom-div-icon",
-        html: mapMarkerLogoHtml(uniLogoSrc(uniId)),
+        html: mapMarkerLogoHtml(uniLogoSrc(uniId, { forceFull: true })),
         iconSize: [44, 44],
         iconAnchor: [22, 22],
         popupAnchor: [0, -24],
@@ -355,8 +365,7 @@ export function updateMapMarkers(items, options = {}) {
   }
 
   if (!focusUniDone) {
-    const fallbackId = activeMapUniId || String(items?.[0]?.id || "");
-    if (fallbackId) updateMapResultsSelection(fallbackId, mapResultsContainer);
+    if (activeMapUniId) updateMapResultsSelection(activeMapUniId, mapResultsContainer);
   }
 }
 

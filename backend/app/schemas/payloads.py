@@ -4,6 +4,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 
 MAX_LIST_ITEMS = 50
+MAX_DETAILS_KEYS = 32
+MAX_DETAILS_DEPTH = 4
+MAX_SELECTED_ADMISSION_CHOICES = 100
+MAX_SELECTED_CHOICE_KEYS = 16
 
 
 def _strip_or_none(value: Any) -> Optional[str]:
@@ -17,6 +21,28 @@ def _strip_or_empty(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _bounded_dict(value: Any, *, max_keys: int, max_depth: int, field_name: str) -> Dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+
+    def visit(node: Any, depth: int) -> None:
+        if depth > max_depth:
+            raise ValueError(f"{field_name} is too deeply nested")
+        if isinstance(node, dict):
+            if len(node) > max_keys:
+                raise ValueError(f"{field_name} has too many keys")
+            for item in node.values():
+                visit(item, depth + 1)
+        elif isinstance(node, list):
+            if len(node) > MAX_LIST_ITEMS:
+                raise ValueError(f"{field_name} has too many list items")
+            for item in node:
+                visit(item, depth + 1)
+
+    visit(value, 1)
+    return value
 
 
 class ProfileExamInput(BaseModel):
@@ -35,6 +61,11 @@ class ProfileExamInput(BaseModel):
     @classmethod
     def _validate_exam_keys(cls, value: Any) -> Optional[str]:
         return _strip_or_none(value)
+
+    @field_validator("details", mode="before")
+    @classmethod
+    def _validate_details(cls, value: Any) -> Dict[str, Any]:
+        return _bounded_dict(value, max_keys=MAX_DETAILS_KEYS, max_depth=MAX_DETAILS_DEPTH, field_name="details")
 
     @model_validator(mode="after")
     def _ensure_exam_id(self) -> "ProfileExamInput":
@@ -66,6 +97,11 @@ class ProfileLanguageInput(BaseModel):
     def _validate_lang_fields(cls, value: Any) -> Optional[str]:
         return _strip_or_none(value)
 
+    @field_validator("details", mode="before")
+    @classmethod
+    def _validate_details(cls, value: Any) -> Dict[str, Any]:
+        return _bounded_dict(value, max_keys=MAX_DETAILS_KEYS, max_depth=MAX_DETAILS_DEPTH, field_name="details")
+
     @model_validator(mode="after")
     def _ensure_language_shape(self) -> "ProfileLanguageInput":
         if not self.code and not self.lang:
@@ -91,7 +127,7 @@ class ProfilePayload(BaseModel):
     locale: Optional[str] = Field(default=None, max_length=16)
     studyMode: str = Field(default="", max_length=40)
     fundingType: str = Field(default="", max_length=20)
-    selectedAdmissionTracks: Dict[str, str] = Field(default_factory=dict)
+    selectedAdmissionChoices: Dict[str, Dict[str, str]] = Field(default_factory=dict)
     exams: List[ProfileExamInput] = Field(default_factory=list, max_length=MAX_LIST_ITEMS)
     languages: List[ProfileLanguageInput] = Field(default_factory=list, max_length=MAX_LIST_ITEMS)
 
@@ -101,8 +137,8 @@ class ProfilePayload(BaseModel):
         if not isinstance(value, dict):
             return value
         data = dict(value)
-        if "selectedAdmissionTracks" not in data and isinstance(data.get("selected_admission_tracks"), dict):
-            data["selectedAdmissionTracks"] = data.get("selected_admission_tracks")
+        if "selectedAdmissionChoices" not in data and isinstance(data.get("selected_admission_choices"), dict):
+            data["selectedAdmissionChoices"] = data.get("selected_admission_choices")
         return data
 
     @field_validator("name", "major", "studyMode", "fundingType", mode="before")
@@ -115,17 +151,30 @@ class ProfilePayload(BaseModel):
     def _normalize_optional_text(cls, value: Any) -> Optional[str]:
         return _strip_or_none(value)
 
-    @field_validator("selectedAdmissionTracks", mode="before")
+    @field_validator("selectedAdmissionChoices", mode="before")
     @classmethod
-    def _normalize_selected_tracks(cls, value: Any) -> Dict[str, str]:
+    def _normalize_selected_choices(cls, value: Any) -> Dict[str, Dict[str, str]]:
         if not isinstance(value, dict):
             return {}
-        out: Dict[str, str] = {}
-        for uni_id, track_key in value.items():
+        if len(value) > MAX_SELECTED_ADMISSION_CHOICES:
+            raise ValueError("selectedAdmissionChoices has too many entries")
+        out: Dict[str, Dict[str, str]] = {}
+        for uni_id, selection in value.items():
             uni = _strip_or_none(uni_id)
-            track = _strip_or_none(track_key)
-            if uni and track:
-                out[uni] = track
+            if not uni or not isinstance(selection, dict):
+                continue
+            if len(selection) > MAX_SELECTED_CHOICE_KEYS:
+                raise ValueError("selectedAdmissionChoices entry has too many keys")
+            choice = _strip_or_none(selection.get("choiceKey") or selection.get("choice_key"))
+            if choice:
+                out[uni] = {
+                    "programId": _strip_or_empty(selection.get("programId") or selection.get("program_id")),
+                    "programName": _strip_or_empty(selection.get("programName") or selection.get("program_name")),
+                    "categoryId": _strip_or_empty(selection.get("categoryId") or selection.get("category_id")),
+                    "requirementProfileId": _strip_or_empty(selection.get("requirementProfileId") or selection.get("requirement_profile_id")),
+                    "fundingOptionId": _strip_or_empty(selection.get("fundingOptionId") or selection.get("funding_option_id")),
+                    "choiceKey": choice,
+                }
         return out
 
 
@@ -180,6 +229,28 @@ class ProfileOnlyRequest(BaseModel):
     profile: ProfilePayload = Field(default_factory=ProfilePayload)
 
 
+class CompareProfilesRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    university_ids: List[str] = Field(..., max_length=MAX_LIST_ITEMS)
+    profile: ProfilePayload = Field(default_factory=ProfilePayload)
+
+    @field_validator("university_ids", mode="before")
+    @classmethod
+    def _normalize_university_ids(cls, value: Any) -> List[str]:
+        if not isinstance(value, list):
+            return value
+        out: List[str] = []
+        seen = set()
+        for item in value:
+            uni_id = _strip_or_none(item)
+            if not uni_id or uni_id in seen:
+                continue
+            seen.add(uni_id)
+            out.append(uni_id)
+        return out
+
+
 class ExamValidateRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -198,6 +269,11 @@ class ExamValidateRequest(BaseModel):
         if not out:
             return None
         return out
+
+    @field_validator("details", mode="before")
+    @classmethod
+    def _validate_details(cls, value: Any) -> Dict[str, Any]:
+        return _bounded_dict(value, max_keys=MAX_DETAILS_KEYS, max_depth=MAX_DETAILS_DEPTH, field_name="details")
 
     @model_validator(mode="after")
     def _ensure_exam_validate_shape(self) -> "ExamValidateRequest":
@@ -225,6 +301,11 @@ class LanguageValidateRequest(BaseModel):
     @classmethod
     def _normalize_language_fields(cls, value: Any) -> Optional[str]:
         return _strip_or_none(value)
+
+    @field_validator("details", mode="before")
+    @classmethod
+    def _validate_details(cls, value: Any) -> Dict[str, Any]:
+        return _bounded_dict(value, max_keys=MAX_DETAILS_KEYS, max_depth=MAX_DETAILS_DEPTH, field_name="details")
 
     @model_validator(mode="after")
     def _ensure_language_validation_shape(self) -> "LanguageValidateRequest":

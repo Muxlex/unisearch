@@ -41,7 +41,7 @@ const LAYOUT_HTML = `
 
   <nav class="navbar-center" id="primaryNav">
     <a href="${routeHome()}" data-route="home" data-link="home" data-i18n="nav.home">Home</a>
-    <a href="${routeUniversities({ tab: "catalog" })}" data-route="universities" data-link="universities" data-i18n="nav.universities">Universities</a>
+    <a href="${routeUniversities()}" data-route="universities" data-link="universities" data-i18n="nav.universities">Universities</a>
     <a href="${routeGuide()}" data-route="guide" data-link="guide" data-i18n="nav.guide">Guide</a>
     <a href="${routeAbout()}" data-route="about" data-link="about" data-i18n="nav.about">About Us</a>
   </nav>
@@ -598,18 +598,18 @@ export async function loadGlobalLayout() {
         console.error("Error loading layout:", error);
     }
 }
-let __tabsBound = false;
 export function setupTabs() {
   const tabsRoot = document.querySelector(".d-tabs");
   if (!tabsRoot) return;
-  if (__tabsBound) return;
-  __tabsBound = true;
+  if (tabsRoot.dataset.bound === "1") return;
+  tabsRoot.dataset.bound = "1";
+
+  const buttons = Array.from(tabsRoot.querySelectorAll(".d-tab-btn"));
+  const panes = Array.from(document.querySelectorAll(".d-tab-pane"));
 
   tabsRoot.addEventListener("click", (e) => {
     const btn = e.target instanceof Element ? e.target.closest(".d-tab-btn") : null;
     if (!btn || !tabsRoot.contains(btn)) return;
-    const buttons = document.querySelectorAll(".d-tab-btn");
-    const panes = document.querySelectorAll(".d-tab-pane");
     buttons.forEach((b) => b.classList.remove("active"));
     panes.forEach((p) => p.classList.remove("active"));
     btn.classList.add("active");

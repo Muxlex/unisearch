@@ -7,6 +7,7 @@ import {
   loadProfileForApi,
   moneyUSD,
   motionPress,
+  replayMotion,
 } from "../../utils.js";
 import { renderNoConnection, setupTabs } from "../../components.js";
 import { t, tFormat } from "../../i18n.js";
@@ -34,12 +35,22 @@ import {
   unknownFieldText,
   writeIdListStorage,
 } from "../_shared.js";
-import { getTrackFundingOptions } from "../../university-detail-helpers.js";
+import { getAdmissionChoicesFromCategories } from "../../university-detail-helpers.js";
 
 let detailProfileUpdatedHandler = null;
 let detailLanguageChangedHandler = null;
 let detailFinanceResizeHandler = null;
 let detailFinanceResizeObserver = null;
+
+function cssString(value) {
+  return String(value || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function thumbnailBackgroundImage(universityId) {
+  const webp = cssString(uniThumbnailSrc(universityId, { forceFull: true }));
+  const jpg = cssString(uniThumbnailSrc(universityId, { forceFull: true, format: "jpg" }));
+  return `image-set(url("${webp}") type("image/webp"), url("${jpg}") type("image/jpeg"))`;
+}
 
 function cleanupDetailListeners() {
   if (detailProfileUpdatedHandler) {
@@ -64,7 +75,37 @@ function cleanupDetailListeners() {
   }
 }
 
+const SCOPE_NOTICE_DISMISSED_KEY = "unisearch_universities_scope_notice_dismissed";
+
+function setupScopeNotice() {
+  const notice = document.getElementById("universityScopeNotice");
+  if (!notice) return;
+
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem(SCOPE_NOTICE_DISMISSED_KEY) === "1";
+  } catch (e) {
+    dismissed = false;
+  }
+
+  notice.hidden = dismissed;
+  if (dismissed) return;
+
+  const dismissBtn = document.getElementById("dismissUniversityScopeNotice");
+  if (!dismissBtn) return;
+
+  dismissBtn.addEventListener("click", () => {
+    notice.hidden = true;
+    try {
+      localStorage.setItem(SCOPE_NOTICE_DISMISSED_KEY, "1");
+    } catch (e) {
+      // Ignore storage errors; the notice still closes for this page view.
+    }
+  });
+}
+
 function renderDetailLocation(university, translatedCity, translatedCountry) {
+
   const locationEl = document.getElementById("detailLocation");
   if (!locationEl) return;
 
@@ -134,7 +175,7 @@ function bindDetailActions({ id, minPrice, translatedName, university, universit
   setTxt("detailLogo", (translatedName || "U").substring(0, 2).toUpperCase());
 
   const coverEl = document.getElementById("detailCover");
-  if (coverEl) coverEl.style.backgroundImage = `url('${uniThumbnailSrc(universityId, { forceFull: true })}')`;
+  if (coverEl) coverEl.style.backgroundImage = thumbnailBackgroundImage(universityId);
 
   const logoEl = document.getElementById("detailLogo");
   if (logoEl) {
@@ -190,6 +231,7 @@ function bindDetailActions({ id, minPrice, translatedName, university, universit
   saveBtn.onclick = () => {
     const saved = readIdListStorage(SAVED_UNIVERSITIES_KEY);
     const idx = saved.indexOf(university.id);
+    const wasSaved = idx > -1;
     if (idx > -1) {
       saved.splice(idx, 1);
     } else {
@@ -198,6 +240,7 @@ function bindDetailActions({ id, minPrice, translatedName, university, universit
     writeIdListStorage(SAVED_UNIVERSITIES_KEY, saved);
     updateSaveBtn();
     motionPress(saveBtn);
+    replayMotion(iconSpan || saveBtn, wasSaved ? "motion-icon-unsave" : "motion-icon-save", { timeoutMs: 320 });
   };
 }
 
@@ -210,6 +253,7 @@ export async function initUniversityPage() {
   const loadingEl = document.getElementById("detailLoading");
 
   cleanupDetailListeners();
+  setupScopeNotice();
   bindInfoTooltips({ wrapSelector: ".d-info-wrap", buttonSelector: ".d-info" });
 
   const setDetailLoading = (isLoading) => {
@@ -242,8 +286,7 @@ export async function initUniversityPage() {
     const profileStudyMode = normalizeStudyModeForCost(loadProfile()?.studyMode || "Any");
     const annualCostForTrack = (track) => modeAwareAnnualCost(((track && track.finance_override) || university.finance || {}), profileStudyMode);
     const minPrice = (() => {
-      const fundingOptions = (Array.isArray(university.admission_tracks) ? university.admission_tracks : [])
-        .flatMap((track) => getTrackFundingOptions(track));
+      const fundingOptions = getAdmissionChoicesFromCategories(university.admission_categories);
       let value = modeAwareAnnualCost(university.finance || {}, profileStudyMode);
       if (fundingOptions.length) {
         const prices = fundingOptions
@@ -279,7 +322,7 @@ export async function initUniversityPage() {
     bindDetailActions({ id, minPrice, translatedName, university, universityId });
 
     let uniChance = null;
-    let uniChanceByTrackKey = new Map();
+    let uniChanceByChoiceKey = new Map();
     let uniRoi = null;
 
     const recomputeUniChance = async () => {
@@ -296,7 +339,7 @@ export async function initUniversityPage() {
         console.error("Failed to compute UniChance on backend:", error);
         uniChance = null;
       }
-      uniChanceByTrackKey = new Map((uniChance?.tracks || []).map((track) => [String(track.trackKey), track]));
+      uniChanceByChoiceKey = new Map((uniChance?.choices || []).map((choice) => [String(choice.choiceKey), choice]));
     };
 
     const recomputeUniRoi = async () => {
@@ -332,7 +375,7 @@ export async function initUniversityPage() {
         annualCostForTrack,
         container: document.getElementById("detailRequirements"),
         uniChance,
-        uniChanceByTrackKey,
+        uniChanceByChoiceKey,
         university,
       });
     };
@@ -347,7 +390,7 @@ export async function initUniversityPage() {
     const priceEl = document.getElementById("detailPrice");
     let financeSummarySyncRaf = 0;
     const applyFinanceSummaryCardHeights = () => {
-      const scholarshipCard = scholarshipEl;
+      const scholarshipCard = scholarshipEl?.closest?.(".scholarship-card") || scholarshipEl;
       const totalPriceCard = priceEl?.closest?.(".total-price-card") || null;
       if (!scholarshipCard || !totalPriceCard) return;
       scholarshipCard.style.minHeight = "";
@@ -379,6 +422,8 @@ export async function initUniversityPage() {
         syncFinanceSummaryCardHeights();
       });
       if (scholarshipEl) detailFinanceResizeObserver.observe(scholarshipEl);
+      const scholarshipCard = scholarshipEl?.closest?.(".scholarship-card") || null;
+      if (scholarshipCard) detailFinanceResizeObserver.observe(scholarshipCard);
       const totalPriceCard = priceEl?.closest?.(".total-price-card") || null;
       if (totalPriceCard) detailFinanceResizeObserver.observe(totalPriceCard);
       const financeSummaryContainer = scholarshipEl?.closest?.(".finance-summary-container") || null;
