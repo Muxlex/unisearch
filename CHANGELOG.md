@@ -2,6 +2,188 @@
 
 All notable project changes should be recorded here.
 
+## Unreleased
+
+## 4.9.6 (2026-06-18) - Performance, Security, and Testing Improvements
+- Added unit tests for `safe-storage.js` to ensure reliable storage functionality (PR #49).
+- Fixed an XSS vulnerability in suggestion rendering by replacing unescaped `innerHTML` with secure DOM APIs (PR #48).
+- Optimized university metadata building by hoisting translation loading out of the per-university loop to improve performance (PR #47).
+## 4.9.5 (2026-06-18) - Compare Bar Persistent Visibility and Typography Hotfix
+- Fixed persistent visibility of the floating comparison bar (`compare-tray`) by hiding and clearing it when navigating away from the universities catalog page through the client router.
+- Cleaned up comparison bar typography and reduced heavy font-weight settings (800) to semibold (600) for text-helpers and action buttons.
+- Replaced the `<strong>` element with `<span>` in the comparison slot name markup to prevent browser-default double bolding of university names.
+
+## 4.9.4 (2026-06-18) - University Detail Grant and Funding Differences Layout
+- Fixed dark-mode grant option and estimated cost styling by replacing hardcoded, muddy black-green gradients and background colors with proper system variables (`--grant-soft` and `--grant-soft-strong`).
+- Added soft green backgrounds to grant options in both light and dark themes to make them visually distinct and high-contrast, ensuring selected grant states remain clean and brand-consistent.
+- Resolved confusion around the "Funding-specific differences" (Отличия финансирования) section by separating CSS rules for the kicker and sub-pane titles, changing the section title to standard Sentence case and a normal weight to establish a clear visual hierarchy.
+- Optimized typography hierarchy across the workspace by reducing excessively heavy font-weights (800 and 900) to semibold (600), medium (500), or standard bold (700) across all stylesheets (`style.css`, `index.css`, `about.css`, `guide.css`, `error.css`, `ranking.css`, `universities.css`, `university.css`) to align with Calm Academic Workspace standards.
+
+## 4.9.3 (2026-06-18) - Hover and Interactive Styles Consolidation
+- Fixed a CSS syntax bug (unmatched closing bracket) at the end of `universities.css`.
+- Replaced basic purple fills and flat hover styling for normal and compared/selected university cards (`.uni-card`) with consolidated, height-stable transition rules.
+- Designed premium hover states for normal cards using subtle accent mixes to background (`var(--surface-soft)`) and border colors.
+- Built interactive states for compared cards (`.compare-uni-card`), highlighting detail links (`.compare-uni-card__link`) on hover.
+- Created responsive hover transitions for map-result cards (`.u-map-result-card`) across normal, active, and selected states.
+- Restored university thumbnail background images on ranking cards with appropriate theme-specific opacity and gradient overlays.
+- Aligned dark-mode university catalog cards with shared surface tokens so list cards no longer appear warmer than the surrounding workspace panels.
+- Optimized font-weight hierarchy across the project to align with Calm Academic Workspace standards by reducing excessively heavy font-weights (800/900) to semibold (600) or medium (500) for university cards, comparisons, and profile elements.
+- Swapped the non-standard country filter input in ranking views with a standard dropdown layout using `globe-alt` and `.u-select`.
+- Maintained deliberate bold hierarchy (700) only for main H1 titles, textual placeholders, and remove actions to keep UI structured but calm.
+- Removed the legacy comparison modal (`openCompareModal`, `closeCompareModal`) and completely integrated the comparison configuration and results layouts into the inline workspace view (`#compareResultsPane`).
+- Standardized the comparison UI components (configure columns, result headers, trait cards) to use flat `var(--card)` surfaces with `var(--line)` borders and uniform `10px` border radii, removing heavy, outdated drop shadows.
+- Fixed Y-axis alignment in the comparison configuration header so that the UniChance badge, funding track label, and recommendation status align perfectly on the same horizontal center.
+- Expanded the "Additional Requirements" (ДОП. ТРЕБОВАНИЯ) block in the comparison view to display the complete list of requirements instead of truncating them with a `+N` count.
+- Performed extensive font-weight optimizations in the Comparison component, reducing remaining heavy font weights (ranging from `950`, `900`, `850`, `800`, to `750`) down to `600` (semibold) or `500` (medium) for config columns, cost previews, stat boxes, option titles, and traits.
+- Normalized the height, padding, line-height, and vertical alignment of the UniChance badge (`.chance-track-chip`, `.compare-track-chance`) on both the university details page and the comparison page to ensure perfect visual consistency with neighboring badges.
+
+## 4.9.2 (2026-06-18) - Guide Scroll and Workspace Navigation Fixes
+- Fixed guide page scroll restoration and active section sync by updating the URL hash on scroll and forcing viewport alignment to the active section hash after dynamic configuration loads.
+- Centralized the "Bachelor's only" notice dismissal on the university detail page, aligning it with the main catalog view and storing the dismissed state in local storage.
+- Saved and restored the last active university list tab (Catalog / Comparing / Map) across page reloads and back-navigation through saved filter state.
+- Added a full-project release archive alongside the frontend and backend deploy archives, and updated release notes to explain which asset to download.
+- Rebuilt release archive generation around tracked Git contents and included `package.json` in the backend archive so runtime version metadata stays available.
+
+## 4.9.1 (2026-06-17)
+- Aligned university detail action buttons so Back to list, save, compare, and share sit as one consistent control group with Back to list on the right.
+- Matched map-result cards to list cards by using the muted View details link style with an arrow indicator.
+- Fixed map result logos and map markers so full university logos render without horizontal cropping.
+- Rounded the map-results horizontal scrollbar to match the surrounding panel radius.
+- Fixed recently viewed chips so the pill width stays stable while only the inner text area shrinks when the remove button appears.
+- Synchronized runtime/package version to `4.9.1` across `package.json`, `package-lock.json`, and generated `frontend/env.js`.
+
+## 4.9.0 (2026-06-17)
+- Rebuilt the frontend motion system around shared duration, easing, page, panel, sheet, list, icon, state, and skeleton motion contracts.
+- Centralized repeated CSS keyframes and motion classes in the global style layer while reducing page-specific animation duplication.
+- Reworked save, compare, remove, settings, dropdown, sheet, modal, and list interactions to use restrained opacity/transform feedback instead of passive card hover lifts or layout-affecting transitions.
+- Added practical motion rules to the design system documentation, including reduced-motion behavior and banned hardcoded transition patterns.
+- Expanded Playwright motion coverage for icon microinteractions, dropdowns, mobile sheets, reduced motion, cleanup behavior, and compare tab stability.
+- Synchronized runtime/package version to `4.9.0` across `package.json`, `package-lock.json`, and generated `frontend/env.js`.
+
+## 4.8.0 (2026-06-01)
+- Reworked university comparison admission choices so configure cards show academic minimums, admitted-score context, language proof, extra requirements, and funding-specific differences before students continue to results.
+- Preserved `score_profile` and funding-specific requirements through frontend admission-choice flattening so SAT/UNT/GPA context and grant-vs-paid cutoffs appear in comparison.
+- Split comparison results admission rows into decision-grade groups for selected route, academic minimums, admitted score context, language proof, documents/interviews/portfolio, funding, and unique exam requirements.
+- Fixed direct compare links so URL `ids` and `choices` override stale saved comparison state, and fixed Russian bachelor-program counts for localized `Бакалавриат` values.
+- Removed unused duplicate comparison modules and expanded unit/E2E coverage for admission flattening, configure cards, results rows, deep links, and Russian comparison text.
+- Fixed the selected comparison-card outline so the purple selection ring is consistent over both the image and body sections.
+- Synchronized runtime/package version to `4.8.0` across `package.json`, `package-lock.json`, and generated `frontend/env.js`.
+
+## 4.7.2 (2026-05-31)
+- Fixed layered catalog view-toggle animation by removing the extra sliding indicator, press pop, and state pulse from the list/map switch while keeping one stable active state.
+- Standardized modal and tour close animations through a shared closing helper so settings, compare, tour, and UniFit warning layers exit cleanly before being hidden.
+- Replaced ad hoc high `z-index` values in shared UI and universities surfaces with named z-layer variables.
+- Added Playwright motion regression coverage for modal exits and the list/map view toggle.
+- Synchronized runtime/package version to `4.7.2` across `package.json`, `package-lock.json`, and generated `frontend/env.js`.
+
+## 4.7.1 (2026-05-31)
+- Restored the admission requirement-profile tab structure and rendered UniChance badges/factors as compact calm UI signals using Heroicons and localization keys.
+- Added English and Russian UI localization for all known UniChance factor keys, with backend factor labels/messages kept as fallback text for unknown keys.
+- Removed mixed English/Russian badge wording in the Russian UI for foundation, need-aware, and need-blind admission signals.
+- Added frontend unit coverage for localized UniChance factor rendering and badge fallback behavior.
+- Synchronized runtime/package version to `4.7.1` across `package.json`, `package-lock.json`, and generated `frontend/env.js`.
+
+## 4.7.0 (2026-05-31)
+- Added `POST /api/universities/compare-profiles` to return UniChance and ROI results for multiple universities in one request, including id normalization, unknown-id null rows, and private short-lived cache headers.
+- Reworked UniChance explanation output to use stable machine-readable `factors` and verified `badges` without artificial country-level penalties or exact `impact_pct` claims.
+- Updated compare loading to use the batch endpoint with a fallback to the previous per-university UniChance and ROI requests.
+- Added backend contract coverage for the batch endpoint and UniChance factor shape, plus frontend unit coverage for compare batch/fallback behavior.
+- Synchronized runtime/package version to `4.7.0` across `package.json`, `package-lock.json`, and generated `frontend/env.js`.
+
+## 4.6.1 (2026-05-31)
+- Removed the local Graphify ignore/instruction exceptions so generated Graphify artifacts are treated by the standard repository hygiene rules.
+- Synchronized runtime/package version to `4.6.1` across `package.json`, `package-lock.json`, and generated `frontend/env.js`.
+
+## 4.6.0 (2026-05-30)
+- Fixed security scan findings across ops-route guarding, request body limiting, Redis rate limiting, frontend source links, translation debug logs, and manual HTTP data auditing.
+- Upgraded Starlette to `1.2.0` and `prometheus-fastapi-instrumentator` to `8.0.0` to remove the audited Starlette advisory while keeping metrics support compatible.
+- Enforced CSP headers and pinned Leaflet/markercluster CDN assets with SRI for the universities map.
+- Removed leftover root-level Narxoz scratch files and temporary test artifacts from the repository.
+- Synchronized runtime/package version to `4.6.0` across `package.json`, `package-lock.json`, and generated `frontend/env.js`.
+
+## 4.5.2 (2026-05-26)
+- Switched university thumbnails to WebP-first delivery while preserving explicit JPG fallback paths.
+- Updated university detail covers to use WebP/JPG `image-set` backgrounds for full-size hero images.
+- Added WebP visual similarity auditing to catch distorted or corrupted generated variants.
+- Refreshed full, medium, and small JPG/WebP cover variants for selected Kazakhstan universities with weaker full-screen image quality.
+
+## 4.5.1 (2026-05-25)
+- Added test data for Narxoz University and expanded university data testing scripts.
+- Updated `universities.json` and `universities_translations.json` to include detailed descriptions for newly added universities and the new `fields_of_study` translation.
+- Modified frontend programs section rendering to use `fields_of_study` for localized program tags.
+
+## 4.5.0 (2026-05-24)
+- Fixed CI test `test_university_detail_contains_only_bachelor_exams_and_levels` by strictly sanitizing internal data to guarantee `Master` references are completely eliminated from bachelor `study_levels`.
+- Refactored frontend and backend logic to support enhanced product scope constraints, ensuring only bachelor levels are shown and processed.
+- Updated E2E test suites to validate strict bachelor constraints and track major tracking functionality.
+
+## 4.4.0 (2026-05-24)
+- Expanded Playwright E2E testing suite with tests for dynamic i18n translation, responsive layout overflow, UniChance calculator validation, and UniFit sliders interaction.
+
+## 4.3.0 (2026-05-24)
+- Enhanced backend infrastructure scripts with database enrichment and deep audit capabilities.
+- Added extensive backend test coverage including concurrency stress testing, bachelor contract enforcement, infrastructure hygiene, and multilingual ML scoring regression.
+
+## 4.2.0 (2026-05-24)
+- Added automated scripts to generate small thumbnails for university assets and audited image integrity.
+- Generated small WEBP variants for all existing university thumbnails.
+
+## 4.1.0 (2026-05-20) - PR Intake and Dependency Refresh
+
+Status:
+- synchronized runtime/package version to `4.1.0` across `package.json`, `package-lock.json`, and generated `frontend/env.js`;
+- updated the Playwright test runner to `@playwright/test` `1.60.0`;
+- updated backend runtime dependencies: Uvicorn `0.47.0`, Pydantic `2.13.4`, torch `2.12.0+cpu`, sentence-transformers `5.5.0`, and Sentry SDK `2.60.0`;
+- added frontend unit coverage for `escapeHtml` and `escapeHtmlAttr`, including null/undefined handling, non-string values, HTML entities, and numeric range stabilization;
+- cached university detail tab buttons and panes during tab setup so tab clicks do not repeat DOM-wide queries;
+- made the university factor refresh script request delay configurable through `UNISEARCH_FACTOR_REFRESH_REQUEST_DELAY_SEC` while keeping a conservative default delay for public APIs;
+- sanitized College Scorecard API keys in public university source URLs during catalog loading so private keys cannot leak through API/UI payloads if a data refresh writes one into source metadata.
+
+## 4.0.0 (2026-05-20) - Admission Choices and Light Theme Refresh
+
+Status:
+- synchronized runtime/package version to `4.0.0` across `package.json`, `package-lock.json`, and generated `frontend/env.js`;
+- replaced the flat `admission_tracks` model with structured `admission_categories`, `requirement_profiles`, and `funding_options` so programs, requirements, and funding routes can be represented separately;
+- migrated profile and API selection payloads from `selectedAdmissionTracks` to `selectedAdmissionChoices`, preserving explicit program, category, requirement profile, funding option, and choice keys;
+- updated UniChance, UniFit scoring, university list filtering/search, ML text matching, compare mode, and detail pages to score and display the selected admission choice instead of the old track-only contract;
+- refreshed university detail admission and finance sections with category/profile/funding option cards, compact funding badges, choice-aware chance values, and selection persistence;
+- applied a broad light-theme refresh across Home, Universities, Ranking, Guide, About, global navigation, profile/settings surfaces, comparison, and university detail pages while keeping the flat dark-theme structure;
+- updated English and Russian localization for the admission-choice model, funding-option labels, compare rows, guide text, and related empty/fallback states;
+- replaced old admission-track compatibility tests with category/funding-option coverage and updated backend and Playwright regressions for the new choice-based contract.
+
+## 3.9.2 (2026-05-14) - Light Theme and Admissions UI Polish
+
+Status:
+- synchronized runtime/package version to `3.9.2` across `package.json`, `package-lock.json`, and generated `frontend/env.js`;
+- improved the light theme across Home, Universities, Ranking, Guide, About, shared navigation, profile/settings modals, comparison, and university detail pages with stronger surface separation, clearer borders, and visible purple active/selected states while preserving the flat dark-theme style;
+- tightened layout density and mobile behavior for About, Guide, Ranking, Universities catalog/compare, profile/settings modals, and university detail admission/finance sections;
+- refined compare and university detail admission-track cards by shortening funding program/source labels, moving full values into tooltips, removing duplicated selected/fallback method text from compact chance chips, and keeping selected-track emphasis purple;
+- reworked the university detail finance scholarship card structure and height synchronization so scholarship and total-cost summary cards align reliably;
+- updated visible copy and localization for About lead text, Ranking global filter wording, location tradeoff labels/help text, and new admission funding label shortcuts in English and Russian;
+- removed the decorative globe prefix from the Universities country filter fallback;
+- refreshed full and small thumbnail assets for Astana IT University, International Information Technology University, Kazakhstan-British Technical University, and KIMEP University.
+
+## 3.9.1 (2026-05-13) - University Detail Route Fix
+
+Status:
+- synchronized runtime/package version to `3.9.1` across `package.json`, `package-lock.json`, and generated `frontend/env.js`;
+- fixed university detail tabs after client-side navigation by binding tab handlers to the current `.d-tabs` DOM node instead of a stale module-level flag;
+- completed Russian localization for visible Kazakhstan program fields by translating Kazakh-language labels and program major tags in localized university detail responses;
+- removed duplicate summary pills from university program cards because the same duration, format, and level data already appears in the program detail rows;
+- added Playwright regression coverage for opening a university from the catalog through the client router and switching detail tabs without refreshing the page.
+
+## 3.9.0 (2026-05-13) - Kazakhstan Catalog Expansion
+
+Status:
+- synchronized runtime/package version to `3.9.0` across `package.json`, `package-lock.json`, and generated `frontend/env.js`;
+- added 10 Kazakhstan bachelor-level universities: Astana Medical University, International Information Technology University, Satbayev University, Kazakhstan-British Technical University, Al-Farabi Kazakh National University, L.N. Gumilyov Eurasian National University, Narxoz University, KIMEP University, Asfendiyarov Kazakh National Medical University, and Abai Kazakh National Pedagogical University;
+- added official-source admissions and fact provenance for the new Kazakhstan universities, including verified-null admissions/selectivity records where official applicant/admit totals are not published;
+- added official tuition-derived annual cost entries, corrected Kazakhstan UNT admission thresholds, removed unsupported GPA pseudo-requirements, and clarified that state-grant values are eligibility thresholds rather than guaranteed grant cutoffs;
+- added Almaty to supported Kazakhstan locations and added hidden search aliases, Russian city/major/tag translations, university descriptions, track labels, program names, and admission text for the new universities;
+- added curated logo and campus thumbnail assets, including full and small variants, for the 10 new Kazakhstan universities;
+- updated service-worker behavior so university media assets use a network-first strategy, service-worker registration bypasses cache for updates, and the service-worker entry file has an explicit version bump;
+- documented optional local Graphify usage in `AGENTS.md` and `CLAUDE.md` without making Graphify a project requirement.
+
 ## 3.8.2 (2026-05-01) - Backend Dependency Refresh
 
 Status:

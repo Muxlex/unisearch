@@ -1,5 +1,6 @@
-import { EXAM_CONFIG, LANG_CONFIG, aiName, canonicalizeExamId, escapeHtml, formatExamValue, getExamDisplayName, loadProfile } from "./utils.js";
+import { EXAM_CONFIG, LANG_CONFIG, aiName, canonicalizeExamId, escapeHtml, escapeHtmlAttr, formatExamValue, getExamDisplayName } from "./utils.js";
 import { getCurrentLanguage, t } from "./i18n.js";
+import { heroIcon } from "./icons.js";
 import { translateAdmissionText, translateTrackLabel, translateUnknownField, translateUnknownWord, translateWord } from "./university-translations.js";
 
 export function mapMarkerLogoHtml(logoUrl) {
@@ -18,6 +19,7 @@ export function applyPercentWidths(rootEl) {
     const raw = Number(node.getAttribute("data-width-pct"));
     const pct = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;
     node.style.setProperty("--fill-width", `${pct}%`);
+    node.style.setProperty("--fill-scale", String(pct / 100));
   });
 }
 
@@ -338,12 +340,91 @@ export function renderLanguageRequirements(track) {
   `;
 }
 
-export function trackLookupKey(track, idx) {
-  const id = String(track?.id || "").trim();
-  if (id) return id;
-  const label = String(track?.label || "").trim();
-  if (label) return `label:${label}`;
-  return `track:${idx}`;
+export function admissionChoiceKey(category, profile, funding = null) {
+  const parts = [
+    String(category?.id || "").trim(),
+    String(profile?.id || "").trim(),
+    String(funding?.id || "").trim(),
+  ].filter(Boolean);
+  return parts.join("::");
+}
+
+function admissionFundingOptions(category, profile) {
+  const profileOptions = Array.isArray(profile?.funding_options)
+    ? profile.funding_options.filter(isPlainObject)
+    : [];
+  if (profileOptions.length) return profileOptions;
+  const categoryOptions = Array.isArray(category?.funding_options)
+    ? category.funding_options.filter(isPlainObject)
+    : [];
+  return categoryOptions;
+}
+
+export function getAdmissionChoicesFromCategories(categories) {
+  if (!Array.isArray(categories)) return [];
+  const choices = [];
+  categories.forEach((category) => {
+    if (!isPlainObject(category)) return;
+    const profiles = Array.isArray(category.requirement_profiles)
+      ? category.requirement_profiles.filter(isPlainObject)
+      : [];
+    const effectiveProfiles = profiles.length
+      ? profiles
+      : [{ id: "general", label: category.label || "General requirements" }];
+
+    effectiveProfiles.forEach((profile) => {
+      const options = admissionFundingOptions(category, profile);
+      const effectiveOptions = options.length ? options : [null];
+      effectiveOptions.forEach((funding, fundingIdx) => {
+        const baseRequirements = mergeTrackVariantDict(category.requirements, profile.requirements) || {};
+        const fundingRequirements = isPlainObject(funding?.requirements) ? { ...funding.requirements } : {};
+        const mergedRequirements = mergeTrackVariantDict(
+          baseRequirements,
+          fundingRequirements,
+        );
+        const scoreProfile = funding?.score_profile || profile.score_profile || category.score_profile;
+        const key = admissionChoiceKey(category, profile, funding);
+        const choice = {
+          ...category,
+          ...profile,
+          ...(funding || {}),
+          id: key || String(profile.id || category.id || `choice:${fundingIdx}`),
+          choice_key: key,
+          category_id: String(category.id || "").trim(),
+          category_label: category.label,
+          requirement_profile_id: String(profile.id || "").trim(),
+          requirement_profile_label: profile.label,
+          funding_option_id: String(funding?.id || "").trim(),
+          requirements: mergedRequirements || {},
+          base_requirements: baseRequirements,
+          funding_requirements: fundingRequirements,
+          stats_avg: filterStatsAvgForRequirements(
+            mergeTrackVariantDict(mergeTrackVariantDict(category.stats_avg, profile.stats_avg), funding?.stats_avg),
+            mergedRequirements,
+          ) || {},
+          finance_override: mergeTrackVariantDict(
+            mergeTrackVariantDict(category.finance_override, profile.finance_override),
+            funding?.finance_override,
+          ) || null,
+          language_requirements: funding?.language_requirements || profile.language_requirements || category.language_requirements || [],
+          language_requirements_mode: funding?.language_requirements_mode || profile.language_requirements_mode || category.language_requirements_mode,
+          extra_requirements: funding?.extra_requirements || profile.extra_requirements || category.extra_requirements || [],
+          scholarships: profile.scholarships || category.scholarships || [],
+          applicable_majors: profile.applicable_majors || category.applicable_majors || [],
+          scope: profile.scope || category.scope || "general",
+          program_ids: profile.program_ids || category.program_ids || [],
+          program_names: profile.program_names || category.program_names || [],
+          __funding_option_index: fundingIdx,
+          __is_funding_option: Boolean(funding),
+        };
+        if (isPlainObject(scoreProfile)) {
+          choice.score_profile = { ...scoreProfile };
+        }
+        choices.push(choice);
+      });
+    });
+  });
+  return choices;
 }
 
 export function chanceTone(chance) {
@@ -402,7 +483,7 @@ function chanceNoDataHelpNote(uniChance) {
   if (reason !== "missing_exam_score") return "";
   return t(
     "admission.chance.need_exam_data_track",
-    "Need exam data to see the chance for this track."
+    "Need exam data to see the chance for this requirement profile."
   );
 }
 
@@ -419,7 +500,7 @@ export function renderUniChanceSummary(uniChance) {
           <div class="chance-percent chance-low">?</div>
         </div>
         <div class="chance-meter"><div class="chance-fill chance-low" data-width-pct="0"></div></div>
-        <div class="chance-foot">${escapeHtml(translateUnknownWord("placeholder.field.best_track", "Best track"))}</div>
+        <div class="chance-foot">${escapeHtml(translateUnknownWord("placeholder.field.best_choice", "Best choice"))}</div>
       </div>
     `;
   }
@@ -452,24 +533,27 @@ export function renderUniChanceSummary(uniChance) {
     || translateWord("admission_probability_sub", "Estimated from your profile, minimum requirements, language rules, selectivity, and affordability context.");
   const chanceMethodShort = chanceModelShort(chanceModel);
   const chanceAccuracy = chanceAccuracyNote(chanceModel);
-  const activeTrackRaw = String(uniChance.bestTrackLabel || "").trim();
-  const activeTrackLabel = activeTrackRaw
-    ? translateTrackLabel(activeTrackRaw, activeTrackRaw)
-    : translateUnknownWord("placeholder.field.best_track", "Best track");
-  const recommendedTrackRaw = String(uniChance.recommendedTrackLabel || uniChance.bestTrackLabel || "").trim();
-  const recommendedTrackLabel = recommendedTrackRaw
-    ? translateTrackLabel(recommendedTrackRaw, recommendedTrackRaw)
-    : translateUnknownWord("placeholder.field.best_track", "Best track");
+  const chancePercentClass = chanceAccuracy ? "chance-low-confidence" : tone.cls;
+  const activeChoiceRaw = String(uniChance.bestChoiceLabel || "").trim();
+  const activeChoiceLabel = activeChoiceRaw
+    ? translateTrackLabel(activeChoiceRaw, activeChoiceRaw)
+    : translateUnknownWord("placeholder.field.best_choice", "Best choice");
+  const recommendedChoiceRaw = String(uniChance.recommendedChoiceLabel || uniChance.bestChoiceLabel || "").trim();
+  const recommendedChoiceLabel = recommendedChoiceRaw
+    ? translateTrackLabel(recommendedChoiceRaw, recommendedChoiceRaw)
+    : translateUnknownWord("placeholder.field.best_choice", "Best choice");
+  const bestKey = String(uniChance?.bestChoiceKey || "").trim();
+  const recommendedKey = String(uniChance?.recommendedChoiceKey || "").trim();
   const selectedByUser = Boolean(
     uniChance?.selectedByUser
-    && String(uniChance?.bestTrackKey || "").trim()
-    && String(uniChance?.bestTrackKey || "").trim() !== String(uniChance?.recommendedTrackKey || "").trim()
+    && bestKey
+    && bestKey !== recommendedKey
   );
-  const trackLabelTitle = selectedByUser
-    ? t("admission.track.selected", "Selected track")
-    : translateWord("best_track", "Best track");
-  const recommendationFoot = selectedByUser && recommendedTrackLabel && recommendedTrackLabel !== activeTrackLabel
-    ? ` • ${escapeHtml(t("admission.track.recommended", "Recommended"))}: <strong>${escapeHtml(recommendedTrackLabel)}</strong>`
+  const choiceLabelTitle = selectedByUser
+    ? t("admission.choice.selected", "Selected choice")
+    : translateWord("best_choice", "Best choice");
+  const recommendationFoot = selectedByUser && recommendedChoiceLabel && recommendedChoiceLabel !== activeChoiceLabel
+    ? ` • ${escapeHtml(t("admission.choice.recommended", "Recommended"))}: <strong>${escapeHtml(recommendedChoiceLabel)}</strong>`
     : "";
   return `
       <div class="chance-panel">
@@ -479,33 +563,158 @@ export function renderUniChanceSummary(uniChance) {
             <div class="chance-sub">${escapeHtml(chanceSub)}</div>
           </div>
           <div class="chance-percent-wrap">
-            <div class="chance-percent ${tone.cls}">${chance}%</div>
+            <div class="chance-percent ${chancePercentClass}">${chance}%</div>
             ${chanceAccuracy ? `<div class="chance-percent-note">${escapeHtml(chanceAccuracy)}</div>` : ""}
           </div>
         </div>
         <div class="chance-meter"><div class="chance-fill ${tone.cls}" data-width-pct="${chance}"></div></div>
-        <div class="chance-foot">${escapeHtml(trackLabelTitle)}: <strong>${escapeHtml(activeTrackLabel)}</strong>${recommendationFoot} • ${escapeHtml(tone.label)}${chanceMethodShort ? ` • ${escapeHtml(chanceMethodShort)}` : ""}</div>
+        <div class="chance-foot">${escapeHtml(choiceLabelTitle)}: <strong>${escapeHtml(activeChoiceLabel)}</strong>${recommendationFoot} • ${escapeHtml(tone.label)}${chanceMethodShort ? ` • ${escapeHtml(chanceMethodShort)}` : ""}</div>
       </div>
   `;
 }
 
 export function renderTrackChanceChip(trackChance) {
+  const badgesHtml = renderTrackChanceBadges(trackChance?.badges);
+
+  let chipHtml = "";
   if (!trackChance) {
-    return `<div class="chance-track-chip">${escapeHtml(translateUnknownWord("placeholder.field.admission_probability", "Admission probability"))}</div>`;
+    chipHtml = `<div class="chance-track-chip">${escapeHtml(translateUnknownWord("placeholder.field.admission_probability", "Admission probability"))}</div>`;
+  } else {
+    const chance = parseChanceValue(trackChance?.chancePercent);
+    if (chance === null) {
+      const noDataLabel = String(
+        trackChance?.label || translateUnknownWord("placeholder.field.admission_probability", "Admission probability")
+      ).trim() || translateUnknownWord("placeholder.field.admission_probability", "Admission probability");
+      chipHtml = `<div class="chance-track-chip">${escapeHtml(noDataLabel)}</div>`;
+    } else {
+      const tone = chanceTone(chance);
+      chipHtml = `<div class="chance-track-chip ${tone.cls}">${escapeHtml(aiName("chance"))} ${chance}%</div>`;
+    }
   }
-  const chance = parseChanceValue(trackChance?.chancePercent);
-  if (chance === null) {
-    const noDataLabel = String(
-      trackChance?.label || translateUnknownWord("placeholder.field.admission_probability", "Admission probability")
-    ).trim() || translateUnknownWord("placeholder.field.admission_probability", "Admission probability");
-    return `<div class="chance-track-chip">${escapeHtml(noDataLabel)}</div>`;
+
+  return `${badgesHtml}${chipHtml}`;
+}
+
+export function renderTrackFactors(trackChance) {
+  const factors = Array.isArray(trackChance?.factors) ? trackChance.factors : [];
+  const factorChips = factors.map(renderTrackFactorChip).filter(Boolean);
+  if (!factorChips.length) return "";
+
+  return `
+    <div class="track-factors-badges" aria-label="${escapeHtmlAttr(t("admission.chance.factors_label", "Why this estimate changed"))}">
+      <span class="track-factors-label">${escapeHtml(t("admission.chance.factors_label", "Why this estimate changed"))}</span>
+      ${factorChips.join("")}
+    </div>
+  `;
+}
+
+function normalizeTrackBadgeKey(value) {
+  const key = String(value || "").trim().toLowerCase();
+  if (!key) return "";
+  if (key === "missing_curriculum" || key === "foundation_required") return "foundation_required";
+  if (key === "need_aware_penalty" || key === "need_aware") return "need_aware";
+  if (key === "need_blind") return "need_blind";
+  return "";
+}
+
+function trackBadgeConfig(value) {
+  const key = normalizeTrackBadgeKey(value);
+  if (key === "foundation_required") {
+    return {
+      cls: "admission-chance-badge--warn",
+      icon: "exclamation-triangle",
+      label: t("admission.chance.badge.foundation_required", "Foundation may be required"),
+      note: t("admission.chance.badge.foundation_required_note", "Direct bachelor entry may require A-Levels, IB, AP, SAT, or a foundation route."),
+    };
   }
-  const tone = chanceTone(chance);
-  const chanceModel = String(trackChance?.chanceModel || "").trim().toLowerCase();
-  const suffix = chanceModel === "estimated_fallback"
-    ? ` • ${escapeHtml(chanceModelShort(chanceModel))}`
-    : "";
-  return `<div class="chance-track-chip ${tone.cls}">${escapeHtml(aiName("chance"))} ${chance}%${suffix}</div>`;
+  if (key === "need_aware") {
+    return {
+      cls: "admission-chance-badge--warn",
+      icon: "exclamation-triangle",
+      label: t("admission.chance.badge.need_aware", "Need-aware aid"),
+      note: t("admission.chance.badge.need_aware_note", "Requesting significant financial aid can affect admission at this institution."),
+    };
+  }
+  if (key === "need_blind") {
+    return {
+      cls: "admission-chance-badge--neutral",
+      icon: "information-circle",
+      label: t("admission.chance.badge.need_blind", "Need-blind review"),
+      note: t("admission.chance.badge.need_blind_note", "Financial need is not expected to lower the admission review in this estimate."),
+    };
+  }
+  return null;
+}
+
+function renderTrackChanceBadges(badges) {
+  if (!Array.isArray(badges) || !badges.length) return "";
+  const rendered = badges.map((badge) => {
+    const config = trackBadgeConfig(badge);
+    if (!config) return "";
+    return `
+      <span class="admission-chance-badge ${config.cls}" title="${escapeHtmlAttr(config.note)}" aria-label="${escapeHtmlAttr(`${config.label}. ${config.note}`)}">
+        ${heroIcon(config.icon, "ui-icon ui-icon--14 admission-chance-badge__icon")}
+        <span>${escapeHtml(config.label)}</span>
+      </span>
+    `;
+  }).filter(Boolean);
+  return rendered.join("");
+}
+
+function factorTone(status) {
+  const normalized = String(status || "").trim().toLowerCase();
+  if (normalized === "positive") return { cls: "factor-positive", icon: "check-circle" };
+  if (normalized === "negative") return { cls: "factor-negative", icon: "exclamation-triangle" };
+  return { cls: "factor-neutral", icon: "information-circle" };
+}
+
+const TRACK_FACTOR_I18N_KEYS = new Set([
+  "missing_evidence",
+  "conditional_requirements",
+  "requirements_gap",
+  "academic_strength",
+  "academic_gap",
+  "language_strength",
+  "language_gap",
+  "affordability_fit",
+  "affordability_gap",
+  "scholarship_support",
+  "high_selectivity",
+  "accessibility_signal",
+  "insufficient_data",
+]);
+
+function normalizeTrackFactorKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function localizedTrackFactorText(factor) {
+  const key = normalizeTrackFactorKey(factor?.key);
+  const labelFallback = String(factor?.label || "").trim();
+  const messageFallback = String(factor?.message || factor?.impact_text || "").trim();
+  if (!TRACK_FACTOR_I18N_KEYS.has(key)) {
+    return { label: labelFallback, message: messageFallback };
+  }
+  return {
+    label: t(`admission.chance.factor.${key}.label`, labelFallback),
+    message: t(`admission.chance.factor.${key}.message`, messageFallback),
+  };
+}
+
+function renderTrackFactorChip(factor) {
+  if (!factor || typeof factor !== "object" || Array.isArray(factor)) return "";
+  const { label, message } = localizedTrackFactorText(factor);
+  if (!label && !message) return "";
+
+  const tone = factorTone(factor.status);
+  const text = label && message ? `${label}: ${message}` : (label || message);
+  const title = `${text}. ${t("admission.chance.factor_hint", "Planning signal only; not an exact causal contribution.")}`;
+  return `
+    <span class="track-factor-chip ${tone.cls}" title="${escapeHtmlAttr(title)}">
+      ${heroIcon(tone.icon, "ui-icon ui-icon--14 track-factor-chip__icon")}
+      <span>${escapeHtml(text)}</span>
+    </span>
+  `;
 }
 
 export function renderTrackFundingBadge(track) {
@@ -525,12 +734,6 @@ export function getTrackFundingType(track) {
   if (rawType === "grant" || rawType === "paid") return rawType;
   const badgeRaw = String(track?.track_badge || "").trim().toLowerCase();
   return /grant|scholar/.test(badgeRaw) ? "grant" : "paid";
-}
-
-function normalizeFundingPreference(value) {
-  const raw = String(value || "").trim().toLowerCase();
-  if (raw === "grant" || raw === "paid") return raw;
-  return "any";
 }
 
 function isPlainObject(value) {
@@ -569,63 +772,4 @@ function filterStatsAvgForRequirements(statsAvg, requirements) {
     if (canonical && allowed.has(canonical)) filtered[key] = value;
   }
   return filtered;
-}
-
-export function getTrackFundingOptions(track) {
-  const baseTrack = isPlainObject(track) ? track : {};
-  const rawOptions = Array.isArray(baseTrack.funding_options)
-    ? baseTrack.funding_options.filter(isPlainObject)
-    : [];
-
-  if (!rawOptions.length) {
-    return [{
-      ...baseTrack,
-      __parent_track_id: String(baseTrack.id || "").trim(),
-      __parent_track_label: String(baseTrack.label || "").trim(),
-      __funding_option_index: 0,
-      __is_funding_option: false,
-    }];
-  }
-
-  return rawOptions.map((option, optionIdx) => {
-    const mergedRequirements = mergeTrackVariantDict(baseTrack.requirements, option.requirements);
-    const merged = {
-      ...baseTrack,
-      ...option,
-      requirements: mergedRequirements,
-      stats_avg: filterStatsAvgForRequirements(
-        mergeTrackVariantDict(baseTrack.stats_avg, option.stats_avg),
-        mergedRequirements
-      ),
-      finance_override: mergeTrackVariantDict(baseTrack.finance_override, option.finance_override),
-      __parent_track_id: String(baseTrack.id || "").trim(),
-      __parent_track_label: String(baseTrack.label || "").trim(),
-      __funding_option_index: optionIdx,
-      __is_funding_option: true,
-    };
-
-    delete merged.funding_options;
-
-    if (!String(merged.id || "").trim()) merged.id = baseTrack.id;
-    if (!String(merged.label || "").trim()) merged.label = baseTrack.label;
-
-    return merged;
-  });
-}
-
-export function filterTrackFundingOptions(track, fundingFilter = "all") {
-  const options = getTrackFundingOptions(track);
-  if (fundingFilter === "all") return options;
-  return options.filter((option) => getTrackFundingType(option) === fundingFilter);
-}
-
-export function trackHasFundingOption(track, fundingFilter = "all") {
-  if (fundingFilter === "all") return true;
-  return filterTrackFundingOptions(track, fundingFilter).length > 0;
-}
-
-export function readAdmissionTrackFilterFromProfile() {
-  const profile = loadProfile();
-  const pref = normalizeFundingPreference(profile?.fundingType || profile?.funding_type || "any");
-  return pref === "any" ? "all" : pref;
 }

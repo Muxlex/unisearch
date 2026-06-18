@@ -9,9 +9,10 @@ Usage examples:
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import re
-import ssl
+import socket
 import sys
 import time
 from collections import Counter
@@ -19,7 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,13 +34,16 @@ REQUIRED_TOP_LEVEL_KEYS = (
     "website",
     "academics",
     "finance",
-    "admission_tracks",
+    "admission_categories",
     "description",
     "tags",
     "description_source",
     "major_focus",
     "fact_provenance",
 )
+PROGRAM_NAME_ALLOWLIST_BY_PHRASE = {
+    "bachelor of advanced computing": {"university-of-sydney-au-sydney"},
+}
 
 
 def _is_non_empty_text(value: Any) -> bool:
@@ -53,6 +57,45 @@ def _is_http_url(value: Any) -> bool:
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
+def _is_public_ip(address: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return False
+    return not (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+    )
+
+
+def _public_http_url_reason(value: Any) -> str:
+    if not _is_http_url(value):
+        return "URL must use http/https and include a host"
+    parsed = urlparse(str(value).strip())
+    host = str(parsed.hostname or "").strip()
+    if not host:
+        return "URL host is empty"
+    try:
+        infos = socket.getaddrinfo(host, parsed.port or (443 if parsed.scheme == "https" else 80), type=socket.SOCK_STREAM)
+    except OSError:
+        return "URL host cannot be resolved"
+    addresses = {str(row[4][0]) for row in infos if row and row[4]}
+    if not addresses:
+        return "URL host has no resolved addresses"
+    blocked = sorted(address for address in addresses if not _is_public_ip(address))
+    if blocked:
+        return f"URL resolves to non-public address: {blocked[0]}"
+    return ""
+
+
+def _is_public_http_url(value: Any) -> bool:
+    return _public_http_url_reason(value) == ""
+
+
 def _clamp_http_timeout(value: float) -> float:
     try:
         out = float(value)
@@ -61,7 +104,18 @@ def _clamp_http_timeout(value: float) -> float:
     return max(0.8, min(out, 40.0))
 
 
+class _SafeRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        reason = _public_http_url_reason(newurl)
+        if reason:
+            raise URLError(f"blocked redirect: {reason}")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def _http_status(url: str, timeout_sec: float) -> Tuple[Optional[int], str]:
+    reason = _public_http_url_reason(url)
+    if reason:
+        return None, url
     req = Request(
         url,
         headers={
@@ -69,8 +123,9 @@ def _http_status(url: str, timeout_sec: float) -> Tuple[Optional[int], str]:
             "Accept": "text/html,application/json,*/*;q=0.1",
         },
     )
+    opener = build_opener(_SafeRedirectHandler)
     try:
-        with urlopen(req, timeout=timeout_sec) as resp:  # noqa: S310
+        with opener.open(req, timeout=timeout_sec) as resp:
             status = int(getattr(resp, "status", 200))
             final_url = str(resp.geturl() or url)
             return status, final_url
@@ -148,33 +203,55 @@ def _iter_source_urls(university: Dict[str, Any]) -> Iterable[Tuple[str, str]]:
                         if _is_non_empty_text(url):
                             yield f"academics.admissions.programs[{p_idx}]/{name}/sources[{s_idx}]", str(url).strip()
 
-    tracks = university.get("admission_tracks")
-    if not isinstance(tracks, list):
+    categories = university.get("admission_categories")
+    if not isinstance(categories, list):
         return
-    for t_idx, track in enumerate(tracks):
-        if not isinstance(track, dict):
+    for c_idx, category in enumerate(categories):
+        if not isinstance(category, dict):
             continue
-        track_id = str(track.get("id") or f"track_{t_idx}").strip()
-        track_source_url = track.get("stats_avg_source_url")
-        if _is_non_empty_text(track_source_url):
-            yield (
-                f"admission_tracks[{t_idx}]/{track_id}/stats_avg_source_url",
-                str(track_source_url).strip(),
-            )
-
-        lang_reqs = track.get("language_requirements")
-        if not isinstance(lang_reqs, list):
+        category_id = str(category.get("id") or f"category_{c_idx}").strip()
+        profiles = category.get("requirement_profiles")
+        if not isinstance(profiles, list):
             continue
-        for lr_idx, row in enumerate(lang_reqs):
-            if not isinstance(row, dict):
+        for p_idx, profile in enumerate(profiles):
+            if not isinstance(profile, dict):
                 continue
-            code = str(row.get("code") or f"lang_{lr_idx}").strip()
-            source_url = row.get("stats_avg_source_url")
-            if _is_non_empty_text(source_url):
+            profile_id = str(profile.get("id") or f"profile_{p_idx}").strip()
+            profile_source_url = profile.get("stats_avg_source_url")
+            if _is_non_empty_text(profile_source_url):
                 yield (
-                    f"admission_tracks[{t_idx}]/{track_id}/language_requirements[{lr_idx}]/{code}/stats_avg_source_url",
-                    str(source_url).strip(),
+                    f"admission_categories[{c_idx}]/{category_id}/requirement_profiles[{p_idx}]/{profile_id}/stats_avg_source_url",
+                    str(profile_source_url).strip(),
                 )
+
+            lang_reqs = profile.get("language_requirements")
+            if isinstance(lang_reqs, list):
+                for lr_idx, row in enumerate(lang_reqs):
+                    if not isinstance(row, dict):
+                        continue
+                    code = str(row.get("code") or f"lang_{lr_idx}").strip()
+                    source_url = row.get("stats_avg_source_url")
+                    if _is_non_empty_text(source_url):
+                        yield (
+                            f"admission_categories[{c_idx}]/{category_id}/requirement_profiles[{p_idx}]/{profile_id}/language_requirements[{lr_idx}]/{code}/stats_avg_source_url",
+                            str(source_url).strip(),
+                        )
+
+            funding_options = profile.get("funding_options")
+            if not isinstance(funding_options, list):
+                funding_options = category.get("funding_options")
+            if not isinstance(funding_options, list):
+                continue
+            for f_idx, funding in enumerate(funding_options):
+                if not isinstance(funding, dict):
+                    continue
+                funding_id = str(funding.get("id") or f"funding_{f_idx}").strip()
+                funding_source_url = funding.get("stats_avg_source_url")
+                if _is_non_empty_text(funding_source_url):
+                    yield (
+                        f"admission_categories[{c_idx}]/{category_id}/requirement_profiles[{p_idx}]/{profile_id}/funding_options[{f_idx}]/{funding_id}/stats_avg_source_url",
+                        str(funding_source_url).strip(),
+                    )
 
 
 def _program_acceptance_values(academics: Dict[str, Any]) -> List[float]:
@@ -316,6 +393,13 @@ def audit_dataset(
                         continue
                     if not _is_non_empty_text(program.get("name")):
                         errors.append(f"{uid}: academics.programs[{p_idx}].name is empty")
+                    else:
+                        program_name = str(program.get("name") or "").strip().lower()
+                        for phrase, allowed_ids in PROGRAM_NAME_ALLOWLIST_BY_PHRASE.items():
+                            if phrase in program_name and uid not in allowed_ids:
+                                errors.append(
+                                    f"{uid}: academics.programs[{p_idx}].name looks copied from another institution: {program.get('name')}"
+                                )
 
             acceptance = academics.get("acceptance_rate_percent")
             if acceptance is not None:
@@ -395,37 +479,66 @@ def audit_dataset(
                 if aid_m != aid.get("merit_based") or aid_n != aid.get("need_based"):
                     warnings.append(f"{uid}: finance.financial_aid values are not strict booleans")
 
-        tracks = row.get("admission_tracks")
-        if not isinstance(tracks, list) or not tracks:
-            errors.append(f"{uid}: admission_tracks is missing or empty")
+        categories = row.get("admission_categories")
+        if not isinstance(categories, list) or not categories:
+            errors.append(f"{uid}: admission_categories is missing or empty")
         else:
-            for t_idx, track in enumerate(tracks):
-                if not isinstance(track, dict):
-                    errors.append(f"{uid}: admission_tracks[{t_idx}] must be object")
+            for c_idx, category in enumerate(categories):
+                if not isinstance(category, dict):
+                    errors.append(f"{uid}: admission_categories[{c_idx}] must be object")
                     continue
-                if not _is_non_empty_text(track.get("id")):
-                    errors.append(f"{uid}: admission_tracks[{t_idx}].id is empty")
-                if not _is_non_empty_text(track.get("label")):
-                    errors.append(f"{uid}: admission_tracks[{t_idx}].label is empty")
-                f_type = str(track.get("funding_type") or "").strip().lower()
-                if f_type not in ("grant", "paid"):
-                    warnings.append(f"{uid}: admission_tracks[{t_idx}].funding_type is '{f_type or 'empty'}'")
-                track_avg = track.get("stats_avg")
-                if isinstance(track_avg, dict) and track_avg and not _is_non_empty_text(track.get("stats_avg_source_url")):
-                    warnings.append(f"{uid}: admission_tracks[{t_idx}].stats_avg has no stats_avg_source_url")
+                if not _is_non_empty_text(category.get("id")):
+                    errors.append(f"{uid}: admission_categories[{c_idx}].id is empty")
+                if not _is_non_empty_text(category.get("label")):
+                    errors.append(f"{uid}: admission_categories[{c_idx}].label is empty")
+                scope = str(category.get("scope") or "").strip().lower()
+                if scope not in ("general", "program", "program_group"):
+                    warnings.append(f"{uid}: admission_categories[{c_idx}].scope is '{scope or 'empty'}'")
 
-                lang_reqs = track.get("language_requirements")
-                if not isinstance(lang_reqs, list):
+                profiles = category.get("requirement_profiles")
+                if not isinstance(profiles, list) or not profiles:
+                    errors.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles is missing or empty")
                     continue
-                for lr_idx, lang_rule in enumerate(lang_reqs):
-                    if not isinstance(lang_rule, dict):
-                        errors.append(f"{uid}: admission_tracks[{t_idx}].language_requirements[{lr_idx}] must be object")
+                for p_idx, profile in enumerate(profiles):
+                    if not isinstance(profile, dict):
+                        errors.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}] must be object")
                         continue
-                    lang_avg = lang_rule.get("stats_avg")
-                    if isinstance(lang_avg, dict) and lang_avg and not _is_non_empty_text(lang_rule.get("stats_avg_source_url")):
-                        warnings.append(
-                            f"{uid}: admission_tracks[{t_idx}].language_requirements[{lr_idx}].stats_avg has no stats_avg_source_url"
-                        )
+                    if not _is_non_empty_text(profile.get("id")):
+                        errors.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].id is empty")
+                    if not _is_non_empty_text(profile.get("label")):
+                        errors.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].label is empty")
+                    profile_avg = profile.get("stats_avg")
+                    if isinstance(profile_avg, dict) and profile_avg and not _is_non_empty_text(profile.get("stats_avg_source_url")):
+                        warnings.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].stats_avg has no stats_avg_source_url")
+
+                    lang_reqs = profile.get("language_requirements")
+                    if isinstance(lang_reqs, list):
+                        for lr_idx, lang_rule in enumerate(lang_reqs):
+                            if not isinstance(lang_rule, dict):
+                                errors.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].language_requirements[{lr_idx}] must be object")
+                                continue
+                            lang_avg = lang_rule.get("stats_avg")
+                            if isinstance(lang_avg, dict) and lang_avg and not _is_non_empty_text(lang_rule.get("stats_avg_source_url")):
+                                warnings.append(
+                                    f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].language_requirements[{lr_idx}].stats_avg has no stats_avg_source_url"
+                                )
+
+                    funding_options = profile.get("funding_options")
+                    if not isinstance(funding_options, list):
+                        funding_options = category.get("funding_options")
+                    if not isinstance(funding_options, list):
+                        continue
+                    for f_idx, funding in enumerate(funding_options):
+                        if not isinstance(funding, dict):
+                            errors.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].funding_options[{f_idx}] must be object")
+                            continue
+                        if not _is_non_empty_text(funding.get("id")):
+                            errors.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].funding_options[{f_idx}].id is empty")
+                        if not _is_non_empty_text(funding.get("label")):
+                            errors.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].funding_options[{f_idx}].label is empty")
+                        f_type = str(funding.get("funding_type") or "").strip().lower()
+                        if f_type not in ("grant", "paid"):
+                            warnings.append(f"{uid}: admission_categories[{c_idx}].requirement_profiles[{p_idx}].funding_options[{f_idx}].funding_type is '{f_type or 'empty'}'")
 
         fact_provenance = row.get("fact_provenance")
         if not isinstance(fact_provenance, dict):
@@ -490,6 +603,10 @@ def audit_dataset(
                 if not _is_http_url(source_url):
                     errors.append(f"{uid}: invalid URL in {source_key}: {source_url}")
                     continue
+                unsafe_reason = _public_http_url_reason(source_url)
+                if unsafe_reason:
+                    errors.append(f"{uid}: unsafe URL in {source_key}: {source_url} ({unsafe_reason})")
+                    continue
                 if _has_suspicious_url_chars(source_url):
                     errors.append(f"{uid}: non-ascii URL in {source_key}: {source_url}")
                     continue
@@ -503,8 +620,10 @@ def audit_dataset(
                 elif status >= 400:
                     # 401/403 are often anti-bot responses for valid pages.
                     warnings.append(f"{uid}: {status} in {source_key}: {source_url}")
-                if final_url and final_url != source_url and not _is_http_url(final_url):
-                    warnings.append(f"{uid}: non-http redirect in {source_key}: {source_url} -> {final_url}")
+                if final_url and final_url != source_url:
+                    redirect_reason = _public_http_url_reason(final_url)
+                    if redirect_reason:
+                        errors.append(f"{uid}: unsafe redirect in {source_key}: {source_url} -> {final_url} ({redirect_reason})")
                 time.sleep(0.01)
 
     return errors, warnings
@@ -543,9 +662,6 @@ def main() -> None:
 
     timeout_sec = _clamp_http_timeout(args.http_timeout)
     max_urls_per_uni = max(1, int(args.max_urls_per_university))
-
-    # Avoid TLS handshake failures on some sites with strict cert chains.
-    ssl._create_default_https_context = ssl._create_unverified_context
 
     errors, warnings = audit_dataset(
         data_path=data_path,

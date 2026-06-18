@@ -22,34 +22,33 @@ import {
   EXAM_CONFIG,
   LANG_CONFIG,
   aiName,
+  animateElementOut,
   markMotionEnter,
   motionPress,
   replayMotion,
   setupSlidingIndicator,
   bindImageFallbacks,
+  closeMotionLayer,
 } from "../utils.js";
 
 import {
   applyPercentWidths,
   chanceTone,
   clusterMarkerLogoHtml,
+  getAdmissionChoicesFromCategories,
   getTrackFundingType,
-  getTrackFundingOptions,
   mapMarkerLogoHtml,
-  renderExamGroup,
   renderGroupedExamPairRows,
   renderTrackChanceChip,
   renderTrackFundingBadge,
   renderUniChanceSummary,
-  splitExamEntries,
-  trackLookupKey,
 } from "../university-detail-helpers.js";
 
 import { setupTabs, renderNoConnection } from "../components.js";
 import { heroIcon, stripLeadingDecorations } from "../icons.js";
 import { getCurrentLanguage, t, tFormat } from "../i18n.js";
 import { extractUniversityIdFromLocation, navigateToAppRoute, routeUniversities, routeUniversityDetail } from "../routes.js";
-import { fetchCompareChances, loadCompareUniversities, resolveAiSortResult } from "./universities/compare-helpers.js";
+import { fetchCompareProfiles, loadCompareUniversities, resolveAiSortResult } from "./universities/compare-helpers.js";
 import {
   humanizeMachineLabel,
   initUniversityTranslations,
@@ -103,7 +102,6 @@ import {
   translateCostBreakdownLabel,
   costBreakdownCoverageNote,
   trackCefrLabel,
-  renderTrackLanguageExamGroup,
   localizeRoiLabel,
   renderRoiBox,
   ruPlural,
@@ -339,10 +337,13 @@ export function initUniversitiesPage() {
     const initialCompareStage = initialCompareIds.length === COMPARE_PAIR_SIZE && ["configure", "results"].includes(initialCompareParam)
         ? initialCompareParam
         : "select";
-    const initialTab = normalizeUniversitiesTab(pageParams.get("tab") || (initialCompareStage === "results" || initialCompareStage === "configure" ? "compare" : "catalog"));
-    const initialCompareTracks = String(pageParams.get("tracks") || "").split(",");
-
     const savedState = loadFilters();
+    const tabFromUrl = pageParams.get("tab");
+    const tabFromCompare = (initialCompareStage === "results" || initialCompareStage === "configure") ? "compare" : null;
+    const tabFromSaved = savedState.activeTab || null;
+    const initialTab = normalizeUniversitiesTab(tabFromUrl || tabFromCompare || tabFromSaved || "catalog");
+    const initialCompareChoices = String(pageParams.get("choices") || "").split(",");
+
     const defaultSortMode = hasProfileEvidence(loadProfile()) ? "uni_ai" : "name_asc";
     const initialMin = clampTuition(savedState.min_tuition, 0);
     const initialMax = clampTuition(savedState.max_tuition, MAX_TUITION);
@@ -410,11 +411,50 @@ export function initUniversitiesPage() {
     let uniFitWarningShownInSession = false;
     let lastRenderedItems = [];
     let savedUniversityIds = new Set(readIdListStorage(SAVED_UNIVERSITIES_KEY));
-    let compareUniversityIds = new Set(normalizeCompareIdList(readIdListStorage(COMPARE_UNIVERSITIES_KEY)));
-    state.compareResultIds.forEach((id) => compareUniversityIds.add(id));
+    let compareUniversityIds = new Set(
+        initialCompareIds.length === COMPARE_PAIR_SIZE
+            ? initialCompareIds
+            : normalizeCompareIdList(readIdListStorage(COMPARE_UNIVERSITIES_KEY))
+    );
+    if (initialCompareIds.length !== COMPARE_PAIR_SIZE) {
+        state.compareResultIds.forEach((id) => compareUniversityIds.add(id));
+    }
     compareUniversityIds = new Set(normalizeCompareIdList(Array.from(compareUniversityIds)));
     let compareAdmissionChoices = new Map();
     let compareChancesByUniId = new Map();
+
+    const compareChoiceKey = (selection) => {
+        if (!selection || typeof selection !== "object" || Array.isArray(selection)) return "";
+        return String(selection.choiceKey || selection.choice_key || "").trim();
+    };
+
+    const normalizeCompareAdmissionSelection = (selection) => {
+        if (!selection || typeof selection !== "object" || Array.isArray(selection)) return null;
+        const choiceKey = compareChoiceKey(selection);
+        if (!choiceKey) return null;
+        return {
+            programId: String(selection.programId || selection.program_id || "").trim(),
+            programName: String(selection.programName || selection.program_name || "").trim(),
+            categoryId: String(selection.categoryId || selection.category_id || "").trim(),
+            requirementProfileId: String(selection.requirementProfileId || selection.requirement_profile_id || "").trim(),
+            fundingOptionId: String(selection.fundingOptionId || selection.funding_option_id || "").trim(),
+            choiceKey,
+        };
+    };
+
+    const compareAdmissionSelectionFromEntry = (entry) => {
+        const option = entry?.option || {};
+        const programIds = Array.isArray(option?.program_ids) ? option.program_ids : [];
+        const programNames = Array.isArray(option?.program_names) ? option.program_names : [];
+        return {
+            programId: String(programIds[0] || "").trim(),
+            programName: String(programNames[0] || "").trim(),
+            categoryId: String(option?.category_id || "").trim(),
+            requirementProfileId: String(option?.requirement_profile_id || "").trim(),
+            fundingOptionId: String(option?.funding_option_id || "").trim(),
+            choiceKey: String(entry?.key || option?.choice_key || option?.choiceKey || option?.id || "").trim(),
+        };
+    };
 
     const optionTextForValue = (selectEl, value) => {
         if (!selectEl) return "";
@@ -488,16 +528,16 @@ export function initUniversitiesPage() {
         if (isCompareResultsMode() || isCompareConfigureMode()) {
             params.set("compare", state.compareStage);
             params.set("ids", state.compareResultIds.join(","));
-            const tracks = state.compareResultIds.map(id => compareAdmissionChoices.get(id) || "").join(",");
-            if (tracks.replace(/,/g, "")) params.set("tracks", tracks);
+            const choices = state.compareResultIds.map(id => compareChoiceKey(compareAdmissionChoices.get(id))).join(",");
+            if (choices.replace(/,/g, "")) params.set("choices", choices);
         } else if (isCompareSelectionMode()) {
             params.set("compare", "select");
             params.delete("ids");
-            params.delete("tracks");
+            params.delete("choices");
         } else {
             params.delete("compare");
             params.delete("ids");
-            params.delete("tracks");
+            params.delete("choices");
         }
         return params;
     };
@@ -637,7 +677,9 @@ export function initUniversitiesPage() {
         try {
             const raw = JSON.parse(localStorage.getItem(COMPARE_ADMISSION_CHOICES_KEY) || "{}");
             if (!raw || typeof raw !== "object" || Array.isArray(raw)) return new Map();
-            return new Map(Object.entries(raw).map(([id, key]) => [String(id || "").trim(), String(key || "").trim()]).filter(([id, key]) => id && key));
+            return new Map(Object.entries(raw)
+                .map(([id, selection]) => [String(id || "").trim(), normalizeCompareAdmissionSelection(selection)])
+                .filter(([id, selection]) => id && selection));
         } catch (e) {
             return new Map();
         }
@@ -645,10 +687,10 @@ export function initUniversitiesPage() {
     const writeCompareAdmissionChoices = () => {
         const pairSet = new Set(comparePairIds());
         const data = {};
-        compareAdmissionChoices.forEach((key, id) => {
+        compareAdmissionChoices.forEach((selection, id) => {
             const cleanId = String(id || "").trim();
-            const cleanKey = String(key || "").trim();
-            if (pairSet.has(cleanId) && cleanKey) data[cleanId] = cleanKey;
+            const normalized = normalizeCompareAdmissionSelection(selection);
+            if (pairSet.has(cleanId) && normalized) data[cleanId] = normalized;
         });
         try {
             localStorage.setItem(COMPARE_ADMISSION_CHOICES_KEY, JSON.stringify(data));
@@ -657,10 +699,11 @@ export function initUniversitiesPage() {
         }
     };
     compareAdmissionChoices = readCompareAdmissionChoices();
-    if (initialCompareStage !== "select" && initialCompareTracks.length) {
+    if (initialCompareStage !== "select" && initialCompareChoices.length) {
         initialCompareIds.forEach((id, index) => {
-            if (initialCompareTracks[index]) {
-                compareAdmissionChoices.set(id, initialCompareTracks[index]);
+            const choiceKey = String(initialCompareChoices[index] || "").trim();
+            if (choiceKey) {
+                compareAdmissionChoices.set(id, { choiceKey });
             }
         });
         writeCompareAdmissionChoices();
@@ -705,7 +748,7 @@ export function initUniversitiesPage() {
             return `
                 <div class="compare-tray__slot${id ? "" : " compare-tray__slot--empty"}" role="listitem">
                     <span class="compare-tray__slot-label">${escapeHtml(compareSlotLabel(index))}</span>
-                    <strong class="compare-tray__slot-name">${escapeHtml(name || t("universities.compare.pair_empty", "Empty slot"))}</strong>
+                    <span class="compare-tray__slot-name">${escapeHtml(name || t("universities.compare.pair_empty", "Empty slot"))}</span>
                 </div>
             `;
         }).join("");
@@ -792,7 +835,8 @@ export function initUniversitiesPage() {
         const cleanId = String(uniId || "").trim();
         if (!cleanId) return false;
         const currentPair = comparePairIds();
-        if (currentPair.includes(cleanId)) {
+        const wasCompared = currentPair.includes(cleanId);
+        if (wasCompared) {
             setComparePairIds(currentPair.filter((id) => id !== cleanId));
         } else {
             const nextPair = currentPair.length >= COMPARE_PAIR_SIZE
@@ -806,6 +850,11 @@ export function initUniversitiesPage() {
             ? triggerEl
             : Array.from(document.querySelectorAll("[data-uni-id]")).find((node) => node.getAttribute("data-uni-id") === cleanId);
         if (target) replayMotion(target, "motion-state-pulse--compare", { timeoutMs: 520 });
+        replayMotion(
+            target?.querySelector(".uni-action-icon, .u-map-result-action-icon") || target,
+            wasCompared ? "motion-icon-compare-remove" : "motion-icon-compare-add",
+            { timeoutMs: 320 }
+        );
         persistSavedAndCompare();
         return true;
     };
@@ -830,8 +879,11 @@ export function initUniversitiesPage() {
             if (wasSaved) savedUniversityIds.delete(uniId);
             else savedUniversityIds.add(uniId);
             syncCardActionState();
-            replayMotion(actionBtn.querySelector(".uni-action-icon") || actionBtn, "motion-pop", { timeoutMs: 420 });
-            replayMotion(card, "motion-state-pulse", { timeoutMs: 520 });
+            replayMotion(
+                actionBtn.querySelector(".uni-action-icon") || actionBtn,
+                wasSaved ? "motion-icon-unsave" : "motion-icon-save",
+                { timeoutMs: 320 }
+            );
             persistSavedAndCompare();
             if (state.only_saved && wasSaved) {
                 refetch();
@@ -846,38 +898,6 @@ export function initUniversitiesPage() {
         }
 
         return false;
-    };
-
-    const ensureCompareModal = () => {
-        let modal = document.getElementById("compareModal");
-        if (modal) return modal;
-        modal = document.createElement("div");
-        modal.id = "compareModal";
-        modal.className = "compare-modal";
-        modal.innerHTML = `
-            <div class="compare-modal__backdrop" data-action="close-compare-modal"></div>
-            <div class="compare-modal__card" role="dialog" aria-modal="true" aria-labelledby="compareModalTitle">
-                <div class="compare-modal__head">
-                    <h2 class="compare-modal__title" id="compareModalTitle">${escapeHtml(t("universities.compare.title", "Compare universities"))}</h2>
-                    <button class="compare-modal__close" type="button" data-action="close-compare-modal" aria-label="${escapeHtmlAttr(t("common.close", "Close"))}">${renderInlineIcon("x-mark", 18, "compare-modal__close-icon")}</button>
-                </div>
-                <div class="compare-modal__body"></div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        modal.addEventListener("click", (event) => {
-            const action = event.target instanceof Element ? event.target.closest("[data-action]")?.getAttribute("data-action") : "";
-            if (action === "close-compare-modal") {
-                modal.classList.remove("is-open");
-                document.body.style.overflow = "";
-            }
-        });
-        document.addEventListener("keydown", (event) => {
-            if (event.key !== "Escape" || !modal.classList.contains("is-open")) return;
-            modal.classList.remove("is-open");
-            document.body.style.overflow = "";
-        });
-        return modal;
     };
 
     const formatCompareCost = (value, fallbackKey = "placeholder.field.cost", fallback = "Cost") => {
@@ -916,12 +936,17 @@ export function initUniversitiesPage() {
         return t("common.na", "N/A");
     };
 
+    const isBachelorStudyLevel = (level) => {
+        const normalized = String(level || "").trim().toLowerCase();
+        return /bachelor|undergraduate|бакалавр|бакалавриат/.test(normalized);
+    };
+
     const compareBachelorPrograms = (u) => {
         const programs = Array.isArray(u?.academics?.programs) ? u.academics.programs : [];
         return programs.filter((program) => {
             const levels = Array.isArray(program?.study_levels) ? program.study_levels : [];
             if (!levels.length) return true;
-            return levels.some((level) => /bachelor|undergraduate/i.test(String(level || "")));
+            return levels.some(isBachelorStudyLevel);
         });
     };
 
@@ -960,28 +985,22 @@ export function initUniversitiesPage() {
     };
 
     const compareAdmissionOptionEntries = (u) => {
-        const tracks = Array.isArray(u?.admission_tracks) ? u.admission_tracks : [];
-        return tracks.flatMap((track, trackIdx) => {
-            const options = getTrackFundingOptions(track);
-            return options.map((option, optionIdx) => ({
-                track,
-                option,
-                trackIdx,
-                optionIdx,
-                key: trackLookupKey(option, optionIdx),
-            }));
-        }).filter((entry) => entry.key && entry.option);
+        const choices = getAdmissionChoicesFromCategories(u?.admission_categories);
+        return choices.map((choice, choiceIdx) => ({
+            option: choice,
+            choiceIdx,
+            key: String(choice?.choice_key || choice?.choiceKey || choice?.id || "").trim(),
+        })).filter((entry) => entry.key && entry.option);
     };
 
     const compareSelectedAdmissionEntry = (u) => {
         const uniId = String(u?.id || "").trim();
-        const selectedKey = String(compareAdmissionChoices.get(uniId) || "").trim();
+        const selectedKey = compareChoiceKey(compareAdmissionChoices.get(uniId));
         if (!selectedKey) return null;
         return compareAdmissionOptionEntries(u).find((entry) => entry.key === selectedKey) || null;
     };
 
     const compareSelectedAdmissionOption = (u) => compareSelectedAdmissionEntry(u)?.option || null;
-    const compareSelectedAdmissionTrack = (u) => compareSelectedAdmissionEntry(u)?.track || null;
     const compareSelectedFinance = (u) => {
         const option = compareSelectedAdmissionOption(u);
         return (option?.finance_override && typeof option.finance_override === "object")
@@ -998,17 +1017,20 @@ export function initUniversitiesPage() {
     };
 
     const compareTrackCountText = (u) => {
-        const tracks = Array.isArray(u?.admission_tracks) ? u.admission_tracks : [];
-        const options = tracks.reduce((sum, track) => sum + (Array.isArray(track?.funding_options) ? Math.max(track.funding_options.length, 1) : 1), 0);
-        if (!tracks.length) return t("common.na", "N/A");
-        return tFormat("universities.compare.track_count", { count: String(tracks.length), options: String(options) }, `${tracks.length} tracks / ${options} options`);
+        const categories = Array.isArray(u?.admission_categories) ? u.admission_categories : [];
+        const options = compareAdmissionOptionEntries(u).length;
+        if (!categories.length) return t("common.na", "N/A");
+        return tFormat("universities.compare.track_count", { count: String(categories.length), options: String(options) }, `${categories.length} categories / ${options} choices`);
     };
 
     const compareTrackLabel = (u) => {
-        const track = compareSelectedAdmissionTrack(u);
-        if (!track) return t("common.na", "N/A");
-        const label = String(track?.label || track?.id || "");
-        return trTrackLabel(track?.label || "") || translateTrackLabel(label, label);
+        const option = compareSelectedAdmissionOption(u);
+        if (!option) return t("common.na", "N/A");
+        const categoryRaw = String(option?.category_label || option?.category_id || "").trim();
+        const profileRaw = String(option?.requirement_profile_label || option?.requirement_profile_id || "").trim();
+        const category = categoryRaw ? trTrackLabel(categoryRaw) || translateTrackLabel(categoryRaw, categoryRaw) : "";
+        const profile = profileRaw ? trTrackLabel(profileRaw) || translateTrackLabel(profileRaw, profileRaw) : "";
+        return Array.from(new Set([category, profile].filter(Boolean))).join(" - ") || t("common.na", "N/A");
     };
 
     const compareFundingChoiceText = (u) => {
@@ -1016,9 +1038,26 @@ export function initUniversitiesPage() {
         if (!option) return t("common.na", "N/A");
         const badge = new DOMParser().parseFromString(renderTrackFundingBadge(option), "text/html").body.textContent?.trim() || "";
         const optionLabelRaw = String(option?.label || "").trim();
-        const parentLabelRaw = String(option?.__parent_track_label || "").trim();
-        const optionLabel = optionLabelRaw && optionLabelRaw !== parentLabelRaw ? trTrackLabel(optionLabelRaw) : "";
+        const profileLabelRaw = String(option?.requirement_profile_label || "").trim();
+        const categoryLabelRaw = String(option?.category_label || "").trim();
+        const optionLabel = optionLabelRaw && optionLabelRaw !== profileLabelRaw && optionLabelRaw !== categoryLabelRaw ? trTrackLabel(optionLabelRaw) : "";
         return [badge, optionLabel].filter(Boolean).join(" - ") || compareAidText(u);
+    };
+
+    const compareFundingRequirementsText = (u) => {
+        const entry = compareSelectedAdmissionEntry(u);
+        if (!entry) return t("common.na", "N/A");
+        const entries = compareAdmissionOptionEntries(u);
+        const delta = compareOptionFundingDeltaPreview(entry, entries);
+        if (delta) return delta;
+
+        const option = entry.option || {};
+        const fundingProgram = String(option?.funding_program || "").trim();
+        const fundingSource = String(option?.funding_source || "").trim();
+        const parts = [];
+        if (fundingProgram) parts.push(trTrackDescription(String(u?.id || ""), option.id, fundingProgram));
+        if (fundingSource) parts.push(trTrackDescription(String(u?.id || ""), option.id, fundingSource));
+        return parts.length ? parts.join(" - ") : t("common.na", "N/A");
     };
 
     const compareRequirementsText = (u) => {
@@ -1032,6 +1071,8 @@ export function initUniversitiesPage() {
 
     const compareAverageScoreText = (u) => {
         const option = compareSelectedAdmissionOption(u);
+        const scoreProfile = compareOptionScoreProfilePreview(option);
+        if (scoreProfile) return scoreProfile;
         const stats = (option?.stats_avg && typeof option.stats_avg === "object") ? option.stats_avg : {};
         const rows = Object.entries(stats)
             .filter(([, value]) => value !== null && value !== undefined && value !== "")
@@ -1177,18 +1218,13 @@ export function initUniversitiesPage() {
     };
 
     const compareFundingOptionCount = (u) => {
-        const tracks = Array.isArray(u?.admission_tracks) ? u.admission_tracks : [];
-        return tracks.reduce((sum, track) => {
-            const options = Array.isArray(track?.funding_options) ? track.funding_options.length : 0;
-            return sum + Math.max(options, 1);
-        }, 0);
+        return compareAdmissionOptionEntries(u).length;
     };
 
     const compareExtraRequirementCount = (u) => {
-        const tracks = Array.isArray(u?.admission_tracks) ? u.admission_tracks : [];
         const extras = new Set();
-        tracks.forEach((track) => {
-            const rows = Array.isArray(track?.extra_requirements) ? track.extra_requirements : [];
+        compareAdmissionOptionEntries(u).forEach((entry) => {
+            const rows = Array.isArray(entry?.option?.extra_requirements) ? entry.option.extra_requirements : [];
             rows.forEach((item) => {
                 const clean = String(item || "").trim();
                 if (clean) extras.add(clean);
@@ -1250,7 +1286,11 @@ export function initUniversitiesPage() {
     const compareSelectedAverageKeys = (u) => {
         const option = compareSelectedAdmissionOption(u);
         const stats = (option?.stats_avg && typeof option.stats_avg === "object") ? option.stats_avg : {};
-        return Object.keys(stats).filter((key) => compareAverageScoreValue(u, key) !== null);
+        const keys = Object.keys(stats).filter((key) => compareAverageScoreValue(u, key) !== null);
+        const scoreProfile = (option?.score_profile && typeof option.score_profile === "object") ? option.score_profile : null;
+        const profileExam = String(scoreProfile?.exam_id || "").trim();
+        if (profileExam && compareAverageScoreValue(u, profileExam) !== null) keys.push(profileExam);
+        return Array.from(new Set(keys));
     };
 
     const compareSelectedLanguageRequirementKeys = (u) => {
@@ -1280,7 +1320,14 @@ export function initUniversitiesPage() {
             const n = toFiniteNumber(value);
             if (n !== null) values.push(n);
         });
-        return values.length ? Math.max(...values) : null;
+        if (values.length) return Math.max(...values);
+        const scoreProfile = (option?.score_profile && typeof option.score_profile === "object") ? option.score_profile : null;
+        const compatible = Array.isArray(scoreProfile?.compatible_exam_ids) ? scoreProfile.compatible_exam_ids : [];
+        const profileExams = [scoreProfile?.exam_id, ...compatible].map(canonicalizeExamId).filter(Boolean);
+        if (profileExams.includes(canonicalizeExamId(examId))) {
+            return toFiniteNumber(scoreProfile?.median_raw ?? scoreProfile?.median_normalized);
+        }
+        return null;
     };
 
     const compareLanguageRequirementValue = (u, examId) => {
@@ -1311,7 +1358,6 @@ export function initUniversitiesPage() {
             });
         });
         return Array.from(byKey.entries())
-            .filter(([, count]) => count >= 2)
             .map(([key]) => key)
             .slice(0, 8);
     };
@@ -1336,7 +1382,7 @@ export function initUniversitiesPage() {
         },
         admissions: {
             title: t("universities.compare.category.admissions.title", "Admissions"),
-            subtitle: t("universities.compare.category.admissions.subtitle", "Access, tracks, and requirements"),
+            subtitle: t("universities.compare.category.admissions.subtitle", "Access, requirement profiles, and funding"),
             icon: "academic-cap",
         },
         finance: {
@@ -1496,10 +1542,10 @@ export function initUniversitiesPage() {
                 weight: 1.2,
             },
             {
-                key: "selected_track",
+                key: "selected_route",
                 section: "admissions",
                 category: "admissions",
-                label: t("universities.compare.row.selected_track", "Selected track"),
+                label: t("universities.compare.row.selected_route", "Selected route"),
                 type: "text",
                 direction: "neutral",
                 getter: compareTrackLabel,
@@ -1521,10 +1567,32 @@ export function initUniversitiesPage() {
                 key: "requirements",
                 section: "admissions",
                 category: "admissions",
-                label: t("universities.compare.row.requirements", "Minimum requirements"),
+                label: t("universities.compare.row.academic_minimums", "Academic minimums"),
                 type: "text",
                 direction: "neutral",
                 getter: compareRequirementsText,
+                score: false,
+                reason: false,
+            },
+            {
+                key: "avg_scores",
+                section: "admissions",
+                category: "prestige",
+                label: t("universities.compare.row.avg_scores", "Admitted score context"),
+                type: "text",
+                direction: "neutral",
+                getter: compareAverageScoreText,
+                score: false,
+                reason: false,
+            },
+            {
+                key: "funding_requirements",
+                section: "admissions",
+                category: "finance",
+                label: t("universities.compare.row.funding_requirements", "Funding-specific requirements"),
+                type: "text",
+                direction: "neutral",
+                getter: compareFundingRequirementsText,
                 score: false,
                 reason: false,
             },
@@ -1536,6 +1604,17 @@ export function initUniversitiesPage() {
                 type: "text",
                 direction: "neutral",
                 getter: compareLanguageProofText,
+                score: false,
+                reason: false,
+            },
+            {
+                key: "extra_requirements",
+                section: "admissions",
+                category: "admissions",
+                label: t("universities.compare.row.application_materials", "Documents / interview / portfolio"),
+                type: "text",
+                direction: "neutral",
+                getter: compareExtraRequirementsText,
                 score: false,
                 reason: false,
             },
@@ -2084,8 +2163,8 @@ export function initUniversitiesPage() {
                 </div>
                 ${(() => {
                     const uniChance = compareChancesByUniId.get(id);
-                    const selectedKey = compareAdmissionChoices.get(id);
-                    const trackChance = (uniChance?.tracks || []).find((x) => String(x.trackKey) === selectedKey);
+                    const selectedKey = compareChoiceKey(compareAdmissionChoices.get(id));
+                    const trackChance = (uniChance?.choices || []).find((x) => String(x.choiceKey) === selectedKey);
                     return trackChance ? `<div class="compare-uni-card__chance">${renderTrackChanceChip(trackChance)}</div>` : "";
                 })()}
                 ${badges.length ? `<div class="compare-uni-card__badges">${badges.map((badge) => `<span>${escapeHtml(badge)}</span>`).join("")}</div>` : ""}
@@ -2094,12 +2173,56 @@ export function initUniversitiesPage() {
         `;
     }).join("");
 
-    const compareOptionRequirementsPreview = (option) => {
-        const req = (option?.requirements && typeof option.requirements === "object") ? option.requirements : {};
-        const rows = Object.entries(req)
+    const compareOptionExamDictPreview = (data, limit = 3) => {
+        const rows = Object.entries((data && typeof data === "object") ? data : {})
             .filter(([, value]) => value !== null && value !== undefined && value !== "")
             .map(([key, value]) => `${getExamDisplayName(key)} ${value}`);
-        return rows.length ? rows.slice(0, 3).join(", ") : t("common.na", "N/A");
+        return rows.length ? rows.slice(0, limit).join(", ") : "";
+    };
+
+    const compareOptionRequirementsPreview = (option) => {
+        const req = (option?.requirements && typeof option.requirements === "object") ? option.requirements : {};
+        return compareOptionExamDictPreview(req) || t("universities.compare.configure.no_academic_minimums", "No published academic minimums");
+    };
+
+    const compareOptionAveragePreview = (option) => {
+        const stats = (option?.stats_avg && typeof option.stats_avg === "object") ? option.stats_avg : {};
+        return compareOptionExamDictPreview(stats) || "";
+    };
+
+    const formatCompareScoreValue = (value) => {
+        const n = toFiniteNumber(value);
+        return n !== null ? formatUiNumber(n, { maximumFractionDigits: 2 }) : "";
+    };
+
+    const compareOptionScoreProfilePreview = (option) => {
+        const profile = (option?.score_profile && typeof option.score_profile === "object") ? option.score_profile : null;
+        if (!profile) return "";
+        const exam = getExamDisplayName(profile.exam_id || (Array.isArray(profile.compatible_exam_ids) ? profile.compatible_exam_ids[0] : ""));
+        const median = formatCompareScoreValue(profile.median_raw ?? profile.median_normalized);
+        const low = formatCompareScoreValue(profile.p25_raw ?? profile.p25_normalized);
+        const high = formatCompareScoreValue(profile.p75_raw ?? profile.p75_normalized);
+        if (median && low && high) {
+            return tFormat(
+                "universities.compare.configure.score_profile_range",
+                { exam, median, low, high },
+                `${exam} median ${median} (25-75%: ${low}-${high})`
+            );
+        }
+        if (median) {
+            return tFormat(
+                "universities.compare.configure.score_profile_median",
+                { exam, median },
+                `${exam} median ${median}`
+            );
+        }
+        return "";
+    };
+
+    const compareOptionAdmittedPreview = (option) => {
+        return compareOptionScoreProfilePreview(option)
+            || compareOptionAveragePreview(option)
+            || t("universities.compare.configure.no_admitted_scores", "No published admitted-score context");
     };
 
     const compareOptionLanguagePreview = (option) => {
@@ -2112,7 +2235,90 @@ export function initUniversitiesPage() {
             });
             if (entry?.accept_native) rows.push(t("universities.compare.native_ok", "native accepted"));
         });
-        return rows.length ? Array.from(new Set(rows)).slice(0, 3).join(", ") : t("common.na", "N/A");
+        if (!rows.length) return t("universities.compare.configure.no_language_proof", "No separate language proof listed");
+        const mode = String(option?.language_requirements_mode || "all").toLowerCase() === "any"
+            ? t("universities.compare.configure.language_any", "Any of")
+            : t("universities.compare.configure.language_all", "All required");
+        return `${mode}: ${Array.from(new Set(rows)).slice(0, 3).join(", ")}`;
+    };
+
+    const compareOptionExtraPreview = (id, option) => {
+        const extras = Array.isArray(option?.extra_requirements) ? option.extra_requirements.filter(Boolean) : [];
+        if (!extras.length) return "";
+        return extras.map((item) => trTrackDescription(id, option?.id, item)).join("; ");
+    };
+
+    const compareOptionFundingDeltaPreview = (entry, entries) => {
+        const option = entry?.option || {};
+        if (getTrackFundingType(option) !== "grant") return "";
+        const sameRoute = (candidate) => (
+            String(candidate?.option?.category_id || "") === String(option?.category_id || "")
+            && String(candidate?.option?.requirement_profile_id || "") === String(option?.requirement_profile_id || "")
+        );
+        const paidBaseline = (Array.isArray(entries) ? entries : [])
+            .find((candidate) => candidate?.key !== entry?.key && sameRoute(candidate) && getTrackFundingType(candidate.option) === "paid");
+        const baseline = (paidBaseline?.option?.requirements && typeof paidBaseline.option.requirements === "object")
+            ? paidBaseline.option.requirements
+            : ((option?.base_requirements && typeof option.base_requirements === "object") ? option.base_requirements : {});
+        const req = (option?.requirements && typeof option.requirements === "object") ? option.requirements : {};
+        const fundingReq = (option?.funding_requirements && typeof option.funding_requirements === "object") ? option.funding_requirements : {};
+        const keys = Object.keys(req).filter((key) => {
+            if (Object.prototype.hasOwnProperty.call(fundingReq, key)) return true;
+            return baseline[key] !== undefined && String(baseline[key]) !== String(req[key]);
+        });
+        const rows = keys
+            .filter((key) => req[key] !== null && req[key] !== undefined && req[key] !== "")
+            .map((key) => {
+                const baseValue = baseline[key];
+                const current = `${getExamDisplayName(key)} ${req[key]}`;
+                return baseValue !== null && baseValue !== undefined && baseValue !== "" && String(baseValue) !== String(req[key])
+                    ? tFormat(
+                        "universities.compare.configure.funding_delta_from",
+                        { value: current, base: String(baseValue) },
+                        `${current} (standard ${baseValue})`
+                    )
+                    : current;
+            });
+        return rows.length
+            ? rows.slice(0, 3).join(", ")
+            : t("universities.compare.configure.no_funding_delta", "No separate funding-specific score cutoff in the data");
+    };
+
+    const renderCompareOptionFacts = (id, entry, entries) => {
+        const option = entry?.option || {};
+        const facts = [
+            [
+                t("universities.compare.configure.academic_minimums", "Academic minimums"),
+                compareOptionRequirementsPreview(option),
+            ],
+            [
+                t("universities.compare.configure.admitted_context", "Admitted score context"),
+                compareOptionAdmittedPreview(option),
+            ],
+            [
+                t("universities.compare.configure.language_proof", "Language proof"),
+                compareOptionLanguagePreview(option),
+            ],
+        ];
+        const extra = compareOptionExtraPreview(id, option);
+        if (extra) {
+            facts.push([t("universities.compare.configure.extra_requirements", "Extra requirements"), extra]);
+        }
+        const fundingDelta = compareOptionFundingDeltaPreview(entry, entries);
+        if (fundingDelta) {
+            facts.push([t("universities.compare.configure.funding_requirements", "Funding-specific requirements"), fundingDelta]);
+        }
+
+        return `
+            <div class="compare-option-facts">
+                ${facts.map(([label, value]) => `
+                    <div class="compare-option-fact">
+                        <span>${escapeHtml(label)}</span>
+                        <strong>${escapeHtml(value)}</strong>
+                    </div>
+                `).join("")}
+            </div>
+        `;
     };
 
     const renderCompareTrackChanceBadge = (trackChance) => {
@@ -2129,32 +2335,30 @@ export function initUniversitiesPage() {
             `;
         }
         const tone = chanceTone(chance);
-        const chanceModel = String(trackChance?.chanceModel || "").trim().toLowerCase();
-        const method = chanceModel === "estimated_fallback"
-            ? t("admission.chance_method.estimated_short", "Estimated")
-            : "";
         return `
             <div class="compare-track-chance ${tone.cls}">
                 <span>${escapeHtml(aiName("chance"))}</span>
                 <strong>${chance}%</strong>
-                ${method ? `<small>${escapeHtml(method)}</small>` : ""}
             </div>
         `;
     };
 
-    const renderCompareAdmissionOptionCard = (u, entry) => {
+    const renderCompareAdmissionOptionCard = (u, entry, entries = []) => {
         const id = String(u?.id || "");
-        const { track, option, key } = entry;
-        const selected = compareAdmissionChoices.get(id) === key;
+        const { option, key } = entry;
+        const selected = compareChoiceKey(compareAdmissionChoices.get(id)) === key;
         const uniChance = compareChancesByUniId.get(id);
-        const trackChance = (uniChance?.tracks || []).find((x) => String(x.trackKey) === key);
-        const recommendedKey = String(uniChance?.recommendedTrackKey || "").trim();
+        const trackChance = (uniChance?.choices || []).find((x) => String(x.choiceKey) === key);
+        const recommendedKey = String(uniChance?.recommendedChoiceKey || "").trim();
         const isRecommendedTrack = Boolean(recommendedKey && key === recommendedKey);
         const optionLabelRaw = String(option?.label || "").trim();
-        const parentLabelRaw = String(track?.label || "").trim();
-        const optionLabel = optionLabelRaw && optionLabelRaw !== parentLabelRaw ? trTrackLabel(optionLabelRaw) : "";
-        const parentLabel = parentLabelRaw ? trTrackLabel(parentLabelRaw) : "";
-        const titleLabel = optionLabel || parentLabel || translateUnknownWord("placeholder.field.admission_tracks", "Admission tracks");
+        const profileLabelRaw = String(option?.requirement_profile_label || option?.requirement_profile_id || "").trim();
+        const categoryLabelRaw = String(option?.category_label || option?.category_id || "").trim();
+        const profileLabel = profileLabelRaw ? trTrackLabel(profileLabelRaw) : "";
+        const categoryLabel = categoryLabelRaw ? trTrackLabel(categoryLabelRaw) : "";
+        const titleLabel = Array.from(new Set([categoryLabel, profileLabel].filter(Boolean))).join(" - ")
+            || (optionLabelRaw ? trTrackLabel(optionLabelRaw) : "")
+            || translateUnknownWord("placeholder.field.admission_categories", "Admission categories");
         const fundingMeta = [
             option?.funding_program
                 ? [t("admission.track.funding_program", "Funding program"), trTrackDescription(id, option.id, option.funding_program)]
@@ -2163,6 +2367,16 @@ export function initUniversitiesPage() {
                 ? [t("admission.track.funding_source", "Funding source"), trTrackDescription(id, option.id, option.funding_source)]
                 : null,
         ].filter(Boolean);
+        const fundingMetaShortLabel = (label) => {
+            const normalized = String(label || "").trim().toLowerCase();
+            if (normalized === String(t("admission.track.funding_program", "Funding program")).trim().toLowerCase()) {
+                return t("admission.track.funding_program_short", "Program");
+            }
+            if (normalized === String(t("admission.track.funding_source", "Funding source")).trim().toLowerCase()) {
+                return t("admission.track.funding_source_short", "Source");
+            }
+            return label;
+        };
         const price = (() => {
             const finance = (option?.finance_override && typeof option.finance_override === "object") ? option.finance_override : (u?.finance || {});
             const profileMode = normalizeStudyModeForCost(loadProfile()?.studyMode || loadProfile()?.study_mode || "");
@@ -2171,25 +2385,8 @@ export function initUniversitiesPage() {
         const priceText = Number.isFinite(Number(price)) ? moneyUSD(price) : unknownFieldText("placeholder.field.cost", "Cost");
         const isGrantTrack = getTrackFundingType(option) === "grant";
 
-        const requirements = option?.requirements || {};
-        const minParts = splitExamEntries(requirements);
-        const minList = [
-            renderExamGroup(translateWord("academic_requirements", "Academic requirements"), minParts.acad, "#2563eb"),
-            renderTrackLanguageExamGroup(option, "requirements"),
-        ].filter(Boolean).join("");
-
-        const statsAvg = option?.stats_avg || {};
-        const avgParts = splitExamEntries(statsAvg);
-        const avgList = [
-            renderExamGroup(translateWord("academic_average", "Academic average"), avgParts.acad, "#2563eb"),
-            renderTrackLanguageExamGroup(option, "average"),
-        ].filter(Boolean).join("");
-
-        const minContent = minList || `<div class="track-muted-italic">${escapeHtml(unknownFieldText("placeholder.field.minimum_requirements", "Minimum requirements"))}</div>`;
-        const avgContent = avgList || `<div class="track-muted-italic">${escapeHtml(translateWord("average_admitted_unavailable", "No verified average admitted data published."))}</div>`;
         const selectionBadges = [];
-        if (selected) selectionBadges.push(escapeHtml(t("admission.track.selected", "Selected")));
-        if (isRecommendedTrack) selectionBadges.push(escapeHtml(t("admission.track.recommended", "Recommended")));
+        if (isRecommendedTrack) selectionBadges.push(escapeHtml(t("admission.choice.recommended", "Recommended")));
         const selectionBadgeHtml = selectionBadges.length
             ? `<div class="track-selection-badge">${selectionBadges.join(" / ")}</div>`
             : "";
@@ -2206,28 +2403,16 @@ export function initUniversitiesPage() {
                         ${selectionBadgeHtml}
                     </div>
                 </div>
-                ${fundingMeta.length ? `<div class="admission-option-meta">${fundingMeta.map(([label, value]) => `<span class="tag"><small>${escapeHtml(label)}</small>${escapeHtml(value)}</span>`).join("")}</div>` : ""}
+                ${fundingMeta.length ? `<div class="admission-option-meta">${fundingMeta.map(([label, value]) => `<span class="tag" title="${escapeHtmlAttr(`${label}: ${value}`)}"><small>${escapeHtml(fundingMetaShortLabel(label))}</small> <span>${escapeHtml(value)}</span></span>`).join("")}</div>` : ""}
+                ${renderCompareOptionFacts(id, entry, entries)}
 
                 <div class="track-cost-preview${isGrantTrack ? " track-cost-preview--grant" : ""}">
                     <strong>${escapeHtml(translateWord("est_cost", "Est. Cost"))}:</strong> ${escapeHtml(priceText)}
                 </div>
 
-                <div class="track-stats-grid">
-                    <div class="track-stats-box track-stats-box--min">
-                        <div class="track-stats-title">${escapeHtml(translateWord("minimum_to_apply", "Minimum to apply"))}</div>
-                        <div class="track-stats-values">${minContent}</div>
-                    </div>
-                    <div class="track-stats-box track-stats-box--avg">
-                        <div class="track-stats-title track-stats-title--avg">
-                            ${escapeHtml(translateWord("real_average_admitted", "Average admitted"))}
-                        </div>
-                        <div class="track-stats-values">${avgContent}</div>
-                    </div>
-                </div>
-
                 <div class="track-select-row">
-                    <button class="track-select-btn${selected ? " is-active" : ""}" type="button" data-action="select-compare-admission" data-uni-id="${escapeHtmlAttr(id)}" data-option-key="${escapeHtmlAttr(key)}"${selected ? " disabled" : ""}>
-                        ${escapeHtml(selected ? t("admission.track.selected", "Selected") : t("admission.track.select", "Select"))}
+                    <button class="track-select-btn${selected ? " is-active" : ""}" type="button" data-action="select-compare-admission" data-uni-id="${escapeHtmlAttr(id)}" data-option-key="${escapeHtmlAttr(key)}" data-program-id="${escapeHtmlAttr(compareAdmissionSelectionFromEntry(entry).programId)}" data-program-name="${escapeHtmlAttr(compareAdmissionSelectionFromEntry(entry).programName)}" data-category-id="${escapeHtmlAttr(compareAdmissionSelectionFromEntry(entry).categoryId)}" data-requirement-profile-id="${escapeHtmlAttr(compareAdmissionSelectionFromEntry(entry).requirementProfileId)}" data-funding-option-id="${escapeHtmlAttr(compareAdmissionSelectionFromEntry(entry).fundingOptionId)}"${selected ? " disabled" : ""}>
+                        ${escapeHtml(selected ? t("admission.choice.selected", "Selected") : t("admission.choice.select", "Select"))}
                     </button>
                 </div>
             </article>
@@ -2236,7 +2421,7 @@ export function initUniversitiesPage() {
 
     const compareConfigurationReady = (universities) => universities.every((u) => {
         const id = String(u?.id || "");
-        return Boolean(compareAdmissionChoices.get(id) && compareSelectedAdmissionEntry(u));
+        return Boolean(compareChoiceKey(compareAdmissionChoices.get(id)) && compareSelectedAdmissionEntry(u));
     });
 
     const renderCompareConfigurePage = async (ids) => {
@@ -2270,27 +2455,27 @@ export function initUniversitiesPage() {
             return;
         }
 
-        compareChancesByUniId = await fetchCompareChances(cleanIds, {
+        const compareProfiles = await fetchCompareProfiles(cleanIds, {
             apiBase: API_BASE,
             fetchImpl: fetch,
             loadProfileForApi,
         });
+        compareChancesByUniId = compareProfiles.chances;
 
         let changedChoices = false;
         universities.forEach((u) => {
             const id = String(u?.id || "");
             if (id) {
                 const entries = compareAdmissionOptionEntries(u);
-                const currentKey = String(compareAdmissionChoices.get(id) || "").trim();
+                const currentKey = compareChoiceKey(compareAdmissionChoices.get(id));
                 const hasValidChoice = Boolean(currentKey && entries.some((entry) => entry.key === currentKey));
                 if (hasValidChoice) return;
 
                 const uniChance = compareChancesByUniId.get(id);
-                const recommendedKey = String(uniChance?.selectedTrackKey || uniChance?.recommendedTrackKey || uniChance?.bestTrackKey || "").trim();
+                const recommendedKey = String(uniChance?.selectedChoiceKey || uniChance?.recommendedChoiceKey || uniChance?.bestChoiceKey || "").trim();
                 if (entries.length) {
                     const match = recommendedKey ? entries.find(e => e.key === recommendedKey) : null;
-                    const finalKey = match ? match.key : entries[0].key;
-                    compareAdmissionChoices.set(id, finalKey);
+                    compareAdmissionChoices.set(id, compareAdmissionSelectionFromEntry(match || entries[0]));
                     changedChoices = true;
                 }
             }
@@ -2305,39 +2490,36 @@ export function initUniversitiesPage() {
             <div class="compare-results-head compare-results-head--pair">
                 <div>
                     <p class="compare-results-kicker">${escapeHtml(t("universities.compare.configure.kicker", "Before comparison"))}</p>
-                    <h1>${escapeHtml(t("universities.compare.configure.title", "Choose tracks and funding"))}</h1>
-                    <p class="compare-config-subtitle">${escapeHtml(t("universities.compare.configure.subtitle", "Pick one admission track and one funding option for each university. The comparison will use these selected options for requirements, language proof, cost, and funding."))}</p>
+                    <h1>${escapeHtml(t("universities.compare.configure.title", "Choose admission choices"))}</h1>
+                    <p class="compare-config-subtitle">${escapeHtml(t("universities.compare.configure.subtitle", "Pick one admission category, requirement profile, and funding option for each university. The comparison will use that choice for requirements, language proof, cost, and funding."))}</p>
                 </div>
                 <div class="compare-results-actions">
                     <button class="compare-results-action compare-results-action--ghost" type="button" data-action="back-to-compare-select">${escapeHtml(t("universities.compare.results.back_to_selection", "Back to selection"))}</button>
                     <button class="compare-results-action" type="button" data-action="build-compare-results"${ready ? "" : " disabled"}>${escapeHtml(t("universities.compare.continue", "Continue"))}</button>
                 </div>
             </div>
-            <section class="compare-config-panel" aria-label="${escapeHtmlAttr(t("universities.compare.configure.title", "Choose tracks and funding"))}">
+            <section class="compare-config-panel" aria-label="${escapeHtmlAttr(t("universities.compare.configure.title", "Choose admission choices"))}">
                 ${universities.map((u, index) => {
                     const id = String(u?.id || "");
                     const entries = compareAdmissionOptionEntries(u);
-                    const selected = compareAdmissionChoices.get(id);
+                    const selected = compareChoiceKey(compareAdmissionChoices.get(id));
                     return `
                         <article class="compare-config-column" data-uni-id="${escapeHtmlAttr(id)}">
                             <div class="compare-config-column__head">
                                 <span>${escapeHtml(compareSlotLabel(index))}</span>
                                 <h2>${escapeHtml(compareUniversityName(u))}</h2>
-                                <p>${escapeHtml(selected ? t("universities.compare.configure.selected", "Track and funding selected") : t("universities.compare.configure.required", "Select one option before comparing"))}</p>
+                                <p>${escapeHtml(selected ? t("universities.compare.configure.selected", "Admission choice selected") : t("universities.compare.configure.required", "Select one option before comparing"))}</p>
                             </div>
                             <div class="compare-config-chance">
                                 ${renderUniChanceSummary(compareChancesByUniId.get(id))}
                             </div>
                             <div class="compare-config-options">
-                                ${entries.length ? entries.map((entry) => renderCompareAdmissionOptionCard(u, entry)).join("") : `<div class="admission-empty-state">${escapeHtml(unknownFieldText("placeholder.field.admission_tracks", "Admission tracks"))}</div>`}
+                                ${entries.length ? entries.map((entry) => renderCompareAdmissionOptionCard(u, entry, entries)).join("") : `<div class="admission-empty-state">${escapeHtml(unknownFieldText("placeholder.field.admission_categories", "Admission categories"))}</div>`}
                             </div>
                         </article>
                     `;
                 }).join("")}
             </section>
-            <div class="compare-config-footer">
-                <button class="compare-results-action compare-results-action--large" type="button" data-action="build-compare-results"${ready ? "" : " disabled"}>${escapeHtml(t("universities.compare.continue", "Continue"))}</button>
-            </div>
         `;
         applyPercentWidths(el.compareResultsPane);
         markMotionEnter(el.compareResultsPane, ".compare-config-column, .admission-option-card", { limit: 16, staggerMs: 18 });
@@ -2370,11 +2552,12 @@ export function initUniversitiesPage() {
             getUniversityDisplayNameById,
             fetchUniversityDetailCached,
         });
-        compareChancesByUniId = await fetchCompareChances(cleanIds, {
+        const compareProfiles = await fetchCompareProfiles(cleanIds, {
             apiBase: API_BASE,
             fetchImpl: fetch,
             loadProfileForApi,
         });
+        compareChancesByUniId = compareProfiles.chances;
 
         if (!isCompareResultsMode()) return;
         if (universities.length !== COMPARE_PAIR_SIZE) {
@@ -2456,131 +2639,6 @@ export function initUniversitiesPage() {
         scrollUniversitiesPageTop("auto");
     };
 
-    const openCompareModal = async () => {
-        const ids = comparePairIds();
-        if (ids.length !== COMPARE_PAIR_SIZE) return;
-        const modal = ensureCompareModal();
-        const body = modal.querySelector(".compare-modal__body");
-        if (!body) return;
-        body.innerHTML = `
-            <div class="compare-loading" role="status">
-                <div class="skeleton-line" style="width: 44%; height: 18px;"></div>
-                <div class="skeleton-line" style="width: 82%; height: 96px;"></div>
-                <div class="skeleton-line" style="width: 76%; height: 96px;"></div>
-            </div>
-        `;
-        modal.classList.add("is-open");
-        document.body.style.overflow = "hidden";
-        window.setTimeout(() => modal.querySelector(".compare-modal__close")?.focus(), 0);
-
-        const universities = await loadCompareUniversities(ids, {
-            getRenderedUniversityById,
-            getUniversityDisplayNameById,
-            fetchUniversityDetailCached,
-        });
-
-        if (!modal.classList.contains("is-open") || universities.length !== COMPARE_PAIR_SIZE) return;
-        const metrics = compareMetrics(universities);
-        const cardHtml = universities.map((u) => {
-            const id = String(u?.id || "");
-            const logoSrc = uniLogoSrc(id);
-            const logoSrcFull = uniLogoSrc(id, { forceFull: true });
-            const badges = compareBestBadges(u, metrics);
-            return `
-                <article class="compare-uni-card" data-uni-id="${escapeHtmlAttr(id)}">
-                    <div class="compare-uni-card__head">
-                        <div class="compare-uni-card__logo">
-                            <img src="${logoSrc}" alt="" loading="lazy" decoding="async" data-fallback-src="${escapeHtmlAttr(logoSrcFull)}" data-fallback-text="${escapeHtmlAttr(initials(compareUniversityName(u)))}">
-                        </div>
-                        <button class="compare-uni-card__remove" type="button" data-action="remove-compare" data-uni-id="${escapeHtmlAttr(id)}" aria-label="${escapeHtmlAttr(t("universities.compare.remove", "Remove from comparison"))}">${renderInlineIcon("x-mark", 16, "compare-remove-icon")}</button>
-                    </div>
-                    <h3>${escapeHtml(compareUniversityName(u))}</h3>
-                    <p>${escapeHtml(compareLocationText(u))}</p>
-                    <div class="compare-uni-card__metrics">
-                        <span><small>${escapeHtml(translateWord("global_rank", "Rank"))}</small><strong>${escapeHtml(compareRankText(u))}</strong></span>
-                        <span><small>${escapeHtml(t("universities.card.cost_short", "Cost"))}</small><strong>${escapeHtml(formatCompareCost(compareSelectedAnnualCost(u)))}</strong></span>
-                        <span><small>${escapeHtml(t("ranking.acceptance", "Acceptance"))}</small><strong>${escapeHtml(compareAcceptanceText(u))}</strong></span>
-                    </div>
-                    ${badges.length ? `<div class="compare-uni-card__badges">${badges.map((badge) => `<span>${escapeHtml(badge)}</span>`).join("")}</div>` : ""}
-                    <a class="compare-uni-card__link" href="${routeUniversityDetail(id)}"${universityLinkAttrs()}>${escapeHtml(t("universities.card.view_details", "View details"))}</a>
-                </article>
-            `;
-        }).join("");
-
-        const rowsHtml = [
-            compareSectionRow(t("universities.compare.section.overview", "Overview"), "overview", universities),
-            compareDataRow(t("universities.compare.row.location", "Location"), universities, compareLocationText),
-            compareDataRow(translateWord("global_rank", "Global Rank"), universities, (u) => ({
-                text: compareRankText(u),
-                tone: metrics.bestRankId === String(u?.id || "") ? "best" : "",
-                sub: compareSourceText(u, "rank"),
-            })),
-            compareDataRow(t("universities.compare.row.student_count", "Students"), universities, compareStudentCountText),
-            compareDataRow(t("universities.compare.row.website", "Website"), universities, (u) => safeUrl(u?.website) ? t("universities.compare.available", "Available") : t("common.na", "N/A")),
-            compareSectionRow(t("universities.compare.section.programs", "Programs"), "programs", universities),
-            compareDataRow(t("universities.compare.row.programs", "Programs shown"), universities, compareProgramSummary),
-            compareDataRow(t("universities.compare.row.study_mode", "Study mode"), universities, compareStudyModeText),
-            compareDataRow(t("universities.compare.row.language", "Program language"), universities, compareLanguageSummary),
-            compareSectionRow(t("universities.compare.section.admissions", "Admissions"), "admissions", universities),
-            compareDataRow(t("ranking.acceptance", "Acceptance Rate"), universities, (u) => ({
-                text: compareAcceptanceText(u),
-                tone: metrics.highestAcceptanceId === String(u?.id || "") ? "best" : "",
-                sub: compareSourceText(u, "acceptance_rate_percent"),
-            })),
-            compareDataRow(t("universities.compare.row.selected_track", "Selected track"), universities, compareTrackLabel),
-            compareDataRow(t("universities.compare.row.funding_choice", "Selected funding"), universities, compareFundingChoiceText),
-            compareDataRow(t("universities.compare.row.requirements", "Minimum requirements"), universities, compareRequirementsText),
-            compareDataRow(t("universities.compare.row.avg_scores", "Admitted score context"), universities, compareAverageScoreText),
-            compareDataRow(t("universities.compare.row.language_proof", "Language proof"), universities, compareLanguageProofText),
-            compareDataRow(t("universities.compare.row.extra_requirements", "Extra requirements"), universities, compareExtraRequirementsText),
-            compareSectionRow(t("universities.compare.section.finance", "Finance"), "finance", universities),
-            compareDataRow(t("universities.compare.row.total_cost", "Total / year"), universities, (u) => ({
-                text: formatCompareCost(compareSelectedAnnualCost(u)),
-                tone: metrics.lowestCostId === String(u?.id || "") ? "best" : "",
-                sub: compareSourceText(u, "tuition_total_cost_year_usd"),
-            })),
-            compareDataRow(t("universities.compare.row.tuition_fees", "Tuition + fees"), universities, (u) => compareCostBreakdownText(u, "tuition")),
-            compareDataRow(t("universities.compare.row.living_costs", "Living cost items"), universities, (u) => compareCostBreakdownText(u, "living")),
-            compareDataRow(t("universities.compare.row.aid", "Aid"), universities, compareAidText),
-            compareSectionRow(t("universities.compare.section.context", "Context"), "context", universities),
-            compareDataRow(t("universities.compare.row.salary", "Early career salary"), universities, compareOutcomeText),
-            compareDataRow(t("universities.compare.row.data_quality", "Verified data"), universities, compareDataConfidenceText),
-        ].join("");
-
-        body.innerHTML = `
-            <div class="compare-modal__intro">
-                <p>${escapeHtml(t("universities.compare.intro", "Use this view to compare practical decision signals side by side. Highlighted cells mark the strongest value among selected universities."))}</p>
-            </div>
-            <div class="compare-uni-grid">${cardHtml}</div>
-            <div class="compare-table-wrap" style="--compare-columns:${universities.length}; --compare-min-width:${170 + (universities.length * 180)}px;">
-                <table class="compare-table">
-                    <thead>
-                        <tr>
-                            <th>${escapeHtml(t("universities.compare.row.metric", "Metric"))}</th>
-                            ${universities.map((u) => `<th>${escapeHtml(compareUniversityName(u))}</th>`).join("")}
-                        </tr>
-                    </thead>
-                    <tbody>${rowsHtml}</tbody>
-                </table>
-            </div>
-        `;
-        body.querySelectorAll("[data-action='remove-compare']").forEach((btn) => {
-            btn.addEventListener("click", () => {
-                const id = String(btn.getAttribute("data-uni-id") || "").trim();
-                if (!id) return;
-                compareUniversityIds.delete(id);
-                persistSavedAndCompare();
-                syncCardActionState();
-                if (comparePairIds().length !== COMPARE_PAIR_SIZE) {
-                    modal.classList.remove("is-open");
-                    document.body.style.overflow = "";
-                    return;
-                }
-                openCompareModal().catch((err) => console.error(err));
-            });
-        });
-    };
-
     const universityLinkAttrs = () => (
         shouldOpenUniversitiesInNewTab()
             ? ' target="_blank" rel="noopener noreferrer"'
@@ -2596,6 +2654,17 @@ export function initUniversitiesPage() {
             return;
         }
         navigateToAppRoute(href);
+    };
+
+    const lockRecentChipWidths = (root) => {
+        if (!root) return;
+        root.querySelectorAll(".u-recent__chip").forEach((chip) => {
+            chip.style.removeProperty("--recent-chip-width");
+            const width = Math.ceil(chip.getBoundingClientRect().width);
+            if (width > 0) {
+                chip.style.setProperty("--recent-chip-width", `${width}px`);
+            }
+        });
     };
 
     const renderRecentlyViewedBar = () => {
@@ -2646,9 +2715,15 @@ export function initUniversitiesPage() {
                 }).join("")}
             </div>
         `;
+        lockRecentChipWidths(el.recentlyViewedBar);
         el.recentlyViewedBar.querySelector('[data-action="clear-recent"]')?.addEventListener("click", () => {
-            writeIdListStorage(RECENT_UNIVERSITIES_KEY, []);
-            renderRecentlyViewedBar();
+            const clearBtn = el.recentlyViewedBar.querySelector('[data-action="clear-recent"]');
+            motionPress(clearBtn);
+            replayMotion(clearBtn?.querySelector(".u-recent__clear-icon") || clearBtn, "motion-icon-clear", { timeoutMs: 240 });
+            animateElementOut(el.recentlyViewedBar, () => {
+                writeIdListStorage(RECENT_UNIVERSITIES_KEY, []);
+                renderRecentlyViewedBar();
+            }, { className: "motion-row-exit", timeoutMs: 280 });
         });
         el.recentlyViewedBar.querySelectorAll('[data-action="remove-recent"]').forEach((button) => {
             button.addEventListener("click", (event) => {
@@ -2656,9 +2731,14 @@ export function initUniversitiesPage() {
                 event.stopPropagation();
                 const uniId = String(button.getAttribute("data-uni-id") || "").trim();
                 if (!uniId) return;
-                const nextIds = readIdListStorage(RECENT_UNIVERSITIES_KEY).filter((id) => id !== uniId);
-                writeIdListStorage(RECENT_UNIVERSITIES_KEY, nextIds);
-                renderRecentlyViewedBar();
+                const chip = button.closest(".u-recent__chip");
+                motionPress(button);
+                replayMotion(button.querySelector(".u-recent__remove-icon") || button, "motion-icon-remove", { timeoutMs: 240 });
+                animateElementOut(chip, () => {
+                    const nextIds = readIdListStorage(RECENT_UNIVERSITIES_KEY).filter((id) => id !== uniId);
+                    writeIdListStorage(RECENT_UNIVERSITIES_KEY, nextIds);
+                    renderRecentlyViewedBar();
+                }, { className: "motion-chip-remove", timeoutMs: 260 });
             });
         });
     };
@@ -2766,11 +2846,18 @@ export function initUniversitiesPage() {
             hideSearchSuggestions();
             return;
         }
-        node.innerHTML = suggestions.slice(0, 7).map((name) => `
-            <button type="button" class="u-search-suggestion" data-value="${escapeHtmlAttr(name)}" role="option">
-                <span>${escapeHtml(name)}</span>
-            </button>
-        `).join("");
+        node.innerHTML = "";
+        suggestions.slice(0, 7).forEach((name) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "u-search-suggestion";
+            btn.setAttribute("data-value", name);
+            btn.setAttribute("role", "option");
+            const span = document.createElement("span");
+            span.textContent = name;
+            btn.appendChild(span);
+            node.appendChild(btn);
+        });
         node.classList.add("is-open");
         markMotionEnter(node, ".u-search-suggestion", { limit: 7, staggerMs: 14 });
     };
@@ -2965,17 +3052,17 @@ export function initUniversitiesPage() {
                 desc: t("tour.step3.desc", "Start broad, then narrow by country, city, cost range, study level, and funding type."),
                 points: [
                     t("tour.step3.point1", "Adjust tuition min/max with the slider."),
-                    t("tour.step3.point2", "Use grant/paid track filter for finance planning."),
+                    t("tour.step3.point2", "Use the grant/paid funding filter for finance planning."),
                     t("tour.step3.point3", "Use map view to spot location clusters."),
                 ],
                 action: "",
             },
             {
                 kicker: t("tour.step4.kicker", "Step 3"),
-                title: t("tour.step4.title", "Open details and compare tracks"),
-                desc: t("tour.step4.desc", "Click any card to inspect admissions, finance, and requirements per track."),
+                title: t("tour.step4.title", "Open details and compare admission choices"),
+                desc: t("tour.step4.desc", "Click any card to inspect admission categories, requirement profiles, finance, and requirements."),
                 points: [
-                    tFormat("tour.step4.point1", { chance: aiName("chance") }, `Review ${aiName("chance")} by track in the detail page.`),
+                    tFormat("tour.step4.point1", { chance: aiName("chance") }, `Review ${aiName("chance")} by selected requirement profile in the detail page.`),
                     t("tour.step4.point2", "Check Admission and Costs tabs for requirement and funding details."),
                     t("tour.step4.point3", "Compare yearly cost and scholarships before applying."),
                 ],
@@ -3020,20 +3107,23 @@ export function initUniversitiesPage() {
                 if (!profileBtn) return;
 
                 isPausedForProfile = true;
-                modal.classList.remove("is-open");
-                modal.setAttribute("aria-hidden", "true");
-                modal.style.display = "none";
+                closeMotionLayer(modal, () => {
+                    modal.classList.remove("is-open", "is-closing");
+                    modal.setAttribute("aria-hidden", "true");
+                    modal.style.display = "none";
+                    profileBtn.click();
+                });
 
                 const onProfileClosed = () => {
                     isPausedForProfile = false;
                     modal.style.display = "flex";
+                    modal.classList.remove("is-closing");
                     modal.classList.add("is-open");
                     modal.setAttribute("aria-hidden", "false");
                     nextBtn?.focus();
                 };
 
                 window.addEventListener("profileModalClosed", onProfileClosed, { once: true });
-                profileBtn.click();
             });
 
             prevBtn.disabled = idx === 0;
@@ -3052,10 +3142,12 @@ export function initUniversitiesPage() {
             skipBtn?.removeEventListener("click", onSkip);
             closeEls.forEach((el) => el.removeEventListener("click", onSkip));
             document.removeEventListener("keydown", onKey);
-            modal.classList.remove("is-open");
-            modal.setAttribute("aria-hidden", "true");
-            modal.style.display = "none";
-            resolve();
+            closeMotionLayer(modal, () => {
+                modal.classList.remove("is-open", "is-closing");
+                modal.setAttribute("aria-hidden", "true");
+                modal.style.display = "none";
+                resolve();
+            });
         };
 
         const onNext = () => {
@@ -3099,6 +3191,7 @@ export function initUniversitiesPage() {
         document.addEventListener("keydown", onKey);
 
         modal.style.display = "flex";
+        modal.classList.remove("is-closing");
         modal.classList.add("is-open");
         modal.setAttribute("aria-hidden", "false");
         nextBtn?.focus();
@@ -3141,10 +3234,12 @@ export function initUniversitiesPage() {
             okBtn?.removeEventListener("click", onOk);
             cancelEls.forEach((el) => el.removeEventListener("click", onCancel));
             document.removeEventListener("keydown", onKey);
-            modal.classList.remove("is-open");
-            modal.setAttribute("aria-hidden", "true");
-            modal.style.display = "none";
-            resolve(result);
+            closeMotionLayer(modal, () => {
+                modal.classList.remove("is-open", "is-closing");
+                modal.setAttribute("aria-hidden", "true");
+                modal.style.display = "none";
+                resolve(result);
+            });
         };
 
         const onOk = () => cleanup(true);
@@ -3161,6 +3256,7 @@ export function initUniversitiesPage() {
         document.addEventListener("keydown", onKey);
 
         modal.style.display = "flex";
+        modal.classList.remove("is-closing");
         modal.classList.add("is-open");
         modal.removeAttribute("aria-hidden");
         okBtn?.focus();
@@ -3204,21 +3300,38 @@ export function initUniversitiesPage() {
     let mapInitPromise = null;
 
     const MAP_ASSETS = {
-        leafletCss: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-        markerClusterCss: "https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css",
-        markerClusterDefaultCss: "https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css",
-        leafletJs: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
-        markerClusterJs: "https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js",
+        leafletCss: {
+            href: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+            integrity: "sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H",
+        },
+        markerClusterCss: {
+            href: "https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css",
+            integrity: "sha384-lPzjPsFQL6te2x+VxmV6q1DpRxpRk0tmnl2cpwAO5y04ESyc752tnEWPKDfl1olr",
+        },
+        markerClusterDefaultCss: {
+            href: "https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css",
+            integrity: "sha384-5kMSQJ6S4Qj5i09mtMNrWpSi8iXw230pKU76xTmrpezGnNJQzj0NzXjQLLg+jE7k",
+        },
+        leafletJs: {
+            src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+            integrity: "sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH",
+        },
+        markerClusterJs: {
+            src: "https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js",
+            integrity: "sha384-RLIyj5q1b5XJTn0tqUhucRZe40nFTocRP91R/NkRJHwAe4XxnTV77FXy/vGLiec2",
+        },
     };
 
-    function loadStylesheetOnce(id, href) {
+    function loadStylesheetOnce(id, asset) {
         if (document.getElementById(id)) return Promise.resolve();
         return new Promise((resolve, reject) => {
+            const href = String(typeof asset === "string" ? asset : asset?.href || "").trim();
             const link = document.createElement("link");
             link.id = id;
             link.rel = "stylesheet";
             link.href = href;
             link.crossOrigin = "anonymous";
+            if (typeof asset !== "string" && asset?.integrity) link.integrity = asset.integrity;
             link.onload = () => resolve();
             link.onerror = () => reject(new Error(`Failed to load ${href}`));
             document.head.appendChild(link);
@@ -3231,14 +3344,16 @@ export function initUniversitiesPage() {
         return rankingModulePromise;
     }
 
-    function loadScriptOnce(id, src) {
+    function loadScriptOnce(id, asset) {
         if (document.getElementById(id)) return Promise.resolve();
         return new Promise((resolve, reject) => {
+            const src = String(typeof asset === "string" ? asset : asset?.src || "").trim();
             const script = document.createElement("script");
             script.id = id;
             script.src = src;
             script.async = true;
             script.crossOrigin = "anonymous";
+            if (typeof asset !== "string" && asset?.integrity) script.integrity = asset.integrity;
             script.onload = () => resolve();
             script.onerror = () => reject(new Error(`Failed to load ${src}`));
             document.head.appendChild(script);
@@ -3569,6 +3684,7 @@ export function initUniversitiesPage() {
                 state.compareStage = "select";
             }
             state.page = 1;
+            saveFilters(state);
             syncSectionVisibility({
                 shouldFetch: nextTab !== "ranking" && !isCompareResultsMode(),
                 updateUrl: true,
@@ -3594,7 +3710,14 @@ export function initUniversitiesPage() {
             const uniId = String(actionButton.getAttribute("data-uni-id") || "").trim();
             const optionKey = String(actionButton.getAttribute("data-option-key") || "").trim();
             if (!uniId || !optionKey) return;
-            compareAdmissionChoices.set(uniId, optionKey);
+            compareAdmissionChoices.set(uniId, {
+                programId: String(actionButton.getAttribute("data-program-id") || "").trim(),
+                programName: String(actionButton.getAttribute("data-program-name") || "").trim(),
+                categoryId: String(actionButton.getAttribute("data-category-id") || "").trim(),
+                requirementProfileId: String(actionButton.getAttribute("data-requirement-profile-id") || "").trim(),
+                fundingOptionId: String(actionButton.getAttribute("data-funding-option-id") || "").trim(),
+                choiceKey: optionKey,
+            });
             writeCompareAdmissionChoices();
             setSectionUrl(true);
             renderCompareConfigurePage(state.compareResultIds).catch((err) => console.error(err));
@@ -3615,11 +3738,9 @@ export function initUniversitiesPage() {
     });
 
     el.btnList?.addEventListener("click", () => {
-        motionPress(el.btnList);
         switchView("list", true).catch((err) => console.error(err));
     });
     el.btnMap?.addEventListener("click", () => {
-        motionPress(el.btnMap);
         switchView("map", true).catch((err) => console.error(err));
     });
 
@@ -3707,7 +3828,6 @@ export function initUniversitiesPage() {
             el.btnList.classList.remove("active");
             el.btnMap.classList.add("active");
             replayMotion(el.mapStage, "motion-panel-enter", { timeoutMs: 420 });
-            replayMotion(el.btnMap, "motion-state-pulse", { timeoutMs: 520 });
             await initMap();
             setTimeout(() => { if(mapInstance) mapInstance.invalidateSize(); }, 100);
             if (shouldFetch) fetchAndRender(); 
@@ -3718,7 +3838,6 @@ export function initUniversitiesPage() {
             el.btnList.classList.add("active");
             el.btnMap.classList.remove("active");
             replayMotion(el.list, "motion-panel-enter", { timeoutMs: 420 });
-            replayMotion(el.btnList, "motion-state-pulse", { timeoutMs: 520 });
             if (shouldFetch) fetchAndRender();
         }
     }
@@ -3758,7 +3877,7 @@ export function initUniversitiesPage() {
                     }
                     const fallbackId = markers[0]?.options?.uniId || "default";
                     const bestId = (best && best.id) ? best.id : fallbackId;
-                    const logoUrl = uniLogoSrc(bestId);
+                    const logoUrl = uniLogoSrc(bestId, { forceFull: true });
                     return L.divIcon({
                         html: clusterMarkerLogoHtml(logoUrl, count - 1),
                         className: "cluster-icon-container",
@@ -3768,6 +3887,14 @@ export function initUniversitiesPage() {
                 }
             });
             markersLayer.on('clusterclick', function (a) { mapInstance.flyToBounds(a.layer.getBounds(), { padding: [80, 80], duration: 1.0 }); });
+            mapInstance.on('popupclose', (e) => {
+                if (markersByUniId.size === 0) return;
+                const source = e.popup && typeof e.popup.getSource === "function" ? e.popup.getSource() : e.popup?._source;
+                const closedUniId = source?.options?.uniId;
+                if (closedUniId && closedUniId === activeMapUniId) {
+                    updateMapResultsSelection("");
+                }
+            });
             mapInstance.addLayer(markersLayer);
             return mapInstance;
         })().catch((error) => {
@@ -3835,7 +3962,7 @@ export function initUniversitiesPage() {
         const visibleItems = mappedItems.slice(0, 10);
         const preferredId = visibleItems.some((u) => String(u.id || "") === activeMapUniId)
             ? activeMapUniId
-            : (visibleItems.some((u) => String(u.id || "") === focusUniId) ? String(focusUniId || "") : String(visibleItems[0]?.id || ""));
+            : (visibleItems.some((u) => String(u.id || "") === focusUniId) ? String(focusUniId || "") : "");
         activeMapUniId = preferredId;
 
         el.mapResults.innerHTML = `
@@ -3956,7 +4083,7 @@ export function initUniversitiesPage() {
                 const uniId = String(u.id || "");
                 const customIcon = L.divIcon({
                     className: "custom-div-icon",
-                    html: mapMarkerLogoHtml(uniLogoSrc(uniId)),
+                    html: mapMarkerLogoHtml(uniLogoSrc(uniId, { forceFull: true })),
                     iconSize: [44, 44],
                     iconAnchor: [22, 22],
                     popupAnchor: [0, -24],
@@ -4002,8 +4129,7 @@ export function initUniversitiesPage() {
         }
 
         if (!focusUniDone) {
-            const fallbackId = activeMapUniId || String(items?.[0]?.id || "");
-            if (fallbackId) updateMapResultsSelection(fallbackId);
+            if (activeMapUniId) updateMapResultsSelection(activeMapUniId);
         }
     }
 
@@ -4247,7 +4373,7 @@ export function initUniversitiesPage() {
         if (!el.countrySelect) return;
         const countries = Object.keys(CITY_OPTIONS_BY_COUNTRY).sort();
         const currentVal = el.countrySelect.value || state.country;
-        let html = `<option value="">&#x1F30D; ${escapeHtml(t("universities.global", "Global"))}</option>`;
+        let html = `<option value="">${escapeHtml(t("universities.global", "Global"))}</option>`;
         countries.forEach(c => { 
             const isSelected = (c === currentVal) ? "selected" : ""; 
             const value = String(c || "");
@@ -4568,7 +4694,7 @@ export function initUniversitiesPage() {
         });
         const match = u.matchData || {};
 
-        // Базовая цена (трековая, если algo её дал)
+        // Базовая цена по выбранному варианту, если алгоритм её дал.
         const baseCost =
         (match.costYearUSD !== undefined ? match.costYearUSD : null) ??
         (match.cost !== undefined ? match.cost : null) ??
@@ -4669,7 +4795,10 @@ export function initUniversitiesPage() {
         const logoSrc = uniLogoSrc(id);
         const logoSrcFull = uniLogoSrc(id, { forceFull: true });
         const thumbSrc = uniThumbnailSrc(id);
+        const thumbSrcMedium = uniThumbnailSrc(id, { size: "medium" });
         const thumbSrcFull = uniThumbnailSrc(id, { forceFull: true });
+        const thumbSrcFullFallback = uniThumbnailSrc(id, { forceFull: true, format: "jpg" });
+        const thumbSrcset = `${thumbSrc} 640w, ${thumbSrcMedium} 960w, ${thumbSrcFull} 1600w`;
         const loadingAttr = idx < 4 ? "eager" : "lazy";
         const fetchPriorityAttr = idx < 2 ? "high" : "auto";
         const detailHref = routeUniversityDetail(id);
@@ -4710,7 +4839,7 @@ export function initUniversitiesPage() {
         return `
         <article class="uni-card${isCompared ? " uni-card--compare-selected" : ""}" data-uni-id="${escapeHtmlAttr(id)}" aria-selected="${isCompared ? "true" : "false"}">
             <div class="uni-media">
-            <img class="uni-media-img" src="${thumbSrc}" alt="" loading="${loadingAttr}" fetchpriority="${fetchPriorityAttr}" decoding="async" data-fallback-src="${escapeHtmlAttr(thumbSrcFull)}" data-final-src="${escapeHtmlAttr(logoSrcFull)}">
+            <img class="uni-media-img" src="${thumbSrc}" srcset="${escapeHtmlAttr(thumbSrcset)}" sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 100vw" alt="" loading="${loadingAttr}" fetchpriority="${fetchPriorityAttr}" decoding="async" data-fallback-src="${escapeHtmlAttr(thumbSrcFullFallback)}" data-final-src="${escapeHtmlAttr(logoSrcFull)}">
             <div class="uni-card-actions">
                 ${saveActionHtml}
                 ${compareActionHtml}

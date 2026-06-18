@@ -23,7 +23,7 @@ export async function loadCompareUniversities(ids, options = {}) {
   return universities.filter(Boolean);
 }
 
-export async function fetchCompareChances(ids, options = {}) {
+export async function fetchCompareProfiles(ids, options = {}) {
   const apiBase = String(options.apiBase || "");
   const fetchImpl = typeof options.fetchImpl === "function" ? options.fetchImpl : fetch;
   const loadProfileForApi = typeof options.loadProfileForApi === "function"
@@ -33,21 +33,72 @@ export async function fetchCompareChances(ids, options = {}) {
     ? ids.map((id) => String(id || "").trim()).filter(Boolean)
     : [];
 
-  const chances = await Promise.all(cleanIds.map(async (id) => {
-    try {
-      const response = await fetchImpl(`${apiBase}/universities/${encodeURIComponent(id)}/uni-chance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile: loadProfileForApi() }),
-      });
-      if (!response.ok) return null;
-      return await response.json();
-    } catch (error) {
-      return null;
-    }
+  if (!cleanIds.length) {
+    return { chances: new Map(), rois: new Map() };
+  }
+
+  const profile = loadProfileForApi();
+  try {
+    const response = await fetchImpl(`${apiBase}/universities/compare-profiles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ university_ids: cleanIds, profile }),
+    });
+
+    if (!response.ok) throw new Error("Compare request failed");
+
+    const results = await response.json();
+    const chances = new Map();
+    const rois = new Map();
+
+    cleanIds.forEach((id) => {
+      const data = results[id];
+      if (data) {
+        chances.set(id, data.uniChance);
+        rois.set(id, data.roi);
+      } else {
+        chances.set(id, null);
+        rois.set(id, null);
+      }
+    });
+
+    return { chances, rois };
+  } catch (error) {
+    return fetchCompareProfilesIndividually(cleanIds, { apiBase, fetchImpl, profile });
+  }
+}
+
+async function fetchJsonOrNull(fetchImpl, url, profile) {
+  try {
+    const response = await fetchImpl(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profile }),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    return null;
+  }
+}
+
+async function fetchCompareProfilesIndividually(ids, options = {}) {
+  const apiBase = String(options.apiBase || "");
+  const fetchImpl = typeof options.fetchImpl === "function" ? options.fetchImpl : fetch;
+  const profile = options.profile || {};
+  const rows = await Promise.all(ids.map(async (id) => {
+    const encodedId = encodeURIComponent(id);
+    const [chance, roi] = await Promise.all([
+      fetchJsonOrNull(fetchImpl, `${apiBase}/universities/${encodedId}/uni-chance`, profile),
+      fetchJsonOrNull(fetchImpl, `${apiBase}/universities/${encodedId}/roi`, profile),
+    ]);
+    return [id, chance, roi];
   }));
 
-  return new Map(cleanIds.map((id, index) => [id, chances[index]]));
+  return {
+    chances: new Map(rows.map(([id, chance]) => [id, chance])),
+    rois: new Map(rows.map(([id, , roi]) => [id, roi])),
+  };
 }
 
 export async function resolveAiSortResult(options = {}) {
@@ -159,9 +210,8 @@ import {
   humanizeMachineLabel 
 } from "../../university-translations.js";
 import { 
-  getTrackFundingOptions, 
+  getAdmissionChoicesFromCategories,
   renderTrackFundingBadge, 
-  trackLookupKey
 } from "../../university-detail-helpers.js";
 
 export function formatCompareCost(value, fallbackKey = "placeholder.field.cost", fallback = "Cost") {
@@ -200,12 +250,17 @@ export function compareAidText(u) {
   return t("common.na", "N/A");
 }
 
+function isBachelorStudyLevel(level) {
+  const normalized = String(level || "").trim().toLowerCase();
+  return /bachelor|undergraduate|бакалавр|бакалавриат/.test(normalized);
+}
+
 export function compareBachelorPrograms(u) {
   const programs = Array.isArray(u?.academics?.programs) ? u.academics.programs : [];
   return programs.filter((program) => {
     const levels = Array.isArray(program?.study_levels) ? program.study_levels : [];
     if (!levels.length) return true;
-    return levels.some((level) => /bachelor|undergraduate/i.test(String(level || "")));
+    return levels.some(isBachelorStudyLevel);
   });
 }
 
@@ -244,32 +299,26 @@ export function compareStudyModeText(u) {
 }
 
 export function compareAdmissionOptionEntries(u) {
-  const tracks = Array.isArray(u?.admission_tracks) ? u.admission_tracks : [];
-  return tracks.flatMap((track, trackIdx) => {
-    const options = getTrackFundingOptions(track);
-    return options.map((option, optionIdx) => ({
-      track,
-      option,
-      trackIdx,
-      optionIdx,
-      key: trackLookupKey(option, optionIdx),
-    }));
-  }).filter((entry) => entry.key && entry.option);
+  const choices = getAdmissionChoicesFromCategories(u?.admission_categories);
+  return choices.map((option, choiceIdx) => ({
+    option,
+    choiceIdx,
+    key: String(option?.choice_key || option?.choiceKey || option?.id || "").trim(),
+  })).filter((entry) => entry.key && entry.option);
 }
 
 export function compareSelectedAdmissionEntry(u, compareAdmissionChoices) {
   const uniId = String(u?.id || "").trim();
-  const selectedKey = String(compareAdmissionChoices.get(uniId) || "").trim();
+  const selection = compareAdmissionChoices.get(uniId);
+  const selectedKey = typeof selection === "object" && selection
+    ? String(selection.choiceKey || selection.choice_key || "").trim()
+    : String(selection || "").trim();
   if (!selectedKey) return null;
   return compareAdmissionOptionEntries(u).find((entry) => entry.key === selectedKey) || null;
 }
 
 export function compareSelectedAdmissionOption(u, compareAdmissionChoices) {
   return compareSelectedAdmissionEntry(u, compareAdmissionChoices)?.option || null;
-}
-
-export function compareSelectedAdmissionTrack(u, compareAdmissionChoices) {
-  return compareSelectedAdmissionEntry(u, compareAdmissionChoices)?.track || null;
 }
 
 export function compareSelectedFinance(u, compareAdmissionChoices) {
@@ -288,17 +337,18 @@ export function compareSelectedAnnualCost(u, compareAdmissionChoices) {
 }
 
 export function compareTrackCountText(u) {
-  const tracks = Array.isArray(u?.admission_tracks) ? u.admission_tracks : [];
-  const options = tracks.reduce((sum, track) => sum + (Array.isArray(track?.funding_options) ? Math.max(track.funding_options.length, 1) : 1), 0);
-  if (!tracks.length) return t("common.na", "N/A");
-  return tFormat("universities.compare.track_count", { count: String(tracks.length), options: String(options) }, `${tracks.length} tracks / ${options} options`);
+  const categories = Array.isArray(u?.admission_categories) ? u.admission_categories : [];
+  const options = compareAdmissionOptionEntries(u).length;
+  if (!categories.length) return t("common.na", "N/A");
+  return tFormat("universities.compare.track_count", { count: String(categories.length), options: String(options) }, `${categories.length} categories / ${options} choices`);
 }
 
 export function compareTrackLabel(u, compareAdmissionChoices) {
-  const track = compareSelectedAdmissionTrack(u, compareAdmissionChoices);
-  if (!track) return t("common.na", "N/A");
-  const label = String(track?.label || track?.id || "");
-  return trTrackLabel(track?.label || "") || translateTrackLabel(label, label);
+  const option = compareSelectedAdmissionOption(u, compareAdmissionChoices);
+  if (!option) return t("common.na", "N/A");
+  const category = String(option?.category_label || option?.category_id || "").trim();
+  const profile = String(option?.requirement_profile_label || option?.requirement_profile_id || "").trim();
+  return Array.from(new Set([category, profile].filter(Boolean).map((item) => trTrackLabel(item) || translateTrackLabel(item, item)))).join(" - ") || t("common.na", "N/A");
 }
 
 export function compareFundingChoiceText(u, compareAdmissionChoices) {
@@ -307,8 +357,9 @@ export function compareFundingChoiceText(u, compareAdmissionChoices) {
   const badgeHtml = renderTrackFundingBadge(option);
   const badge = (new DOMParser().parseFromString(badgeHtml, "text/html")).body.textContent?.trim() || "";
   const optionLabelRaw = String(option?.label || "").trim();
-  const parentLabelRaw = String(option?.__parent_track_label || "").trim();
-  const optionLabel = optionLabelRaw && optionLabelRaw !== parentLabelRaw ? trTrackLabel(optionLabelRaw) : "";
+  const profileLabelRaw = String(option?.requirement_profile_label || "").trim();
+  const categoryLabelRaw = String(option?.category_label || "").trim();
+  const optionLabel = optionLabelRaw && optionLabelRaw !== profileLabelRaw && optionLabelRaw !== categoryLabelRaw ? trTrackLabel(optionLabelRaw) : "";
   return [badge, optionLabel].filter(Boolean).join(" - ") || compareAidText(u);
 }
 
@@ -470,18 +521,13 @@ export function compareMajorTagCount(u) {
 }
 
 export function compareFundingOptionCount(u) {
-  const tracks = Array.isArray(u?.admission_tracks) ? u.admission_tracks : [];
-  return tracks.reduce((sum, track) => {
-    const options = Array.isArray(track?.funding_options) ? track.funding_options.length : 0;
-    return sum + Math.max(options, 1);
-  }, 0);
+  return compareAdmissionOptionEntries(u).length;
 }
 
 export function compareExtraRequirementCount(u) {
-  const tracks = Array.isArray(u?.admission_tracks) ? u.admission_tracks : [];
   const extras = new Set();
-  tracks.forEach((track) => {
-    const rows = Array.isArray(track?.extra_requirements) ? track.extra_requirements : [];
+  compareAdmissionOptionEntries(u).forEach((entry) => {
+    const rows = Array.isArray(entry?.option?.extra_requirements) ? entry.option.extra_requirements : [];
     rows.forEach((item) => {
       const clean = String(item || "").trim();
       if (clean) extras.add(clean);

@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import math
+import os
 import re
 import time
 import urllib.parse
@@ -30,6 +31,7 @@ UNIVERSITIES_PATH = ROOT / "backend" / "data" / "universities.json"
 OPENALEX_BASE = "https://api.openalex.org/institutions"
 OPEN_METEO_BASE = "https://geocoding-api.open-meteo.com/v1/search"
 WIKIDATA_SPARQL_BASE = "https://query.wikidata.org/sparql"
+REQUEST_DELAY_SEC_ENV = "UNISEARCH_FACTOR_REFRESH_REQUEST_DELAY_SEC"
 
 COUNTRY_CODE_MAP = {
     "USA": "US",
@@ -62,6 +64,30 @@ COUNTRY_WIKIDATA_QID_MAP = {
     "Kazakhstan": "Q232",
     "Australia": "Q408",
 }
+
+OPENALEX_NAME_OVERRIDES = {
+    "International Information Technology University": "International Information Technologies University",
+    "Kazakhstan-British Technical University": "Kazakh-British Technical University",
+    "L.N. Gumilyov Eurasian National University": "L. N. Gumilyov Eurasian National University",
+}
+
+FALLBACK_CITY_POPULATION = {
+    "Kaskelen": 79499.0,  # official 2022 Kaskelen population fallback
+}
+
+
+def _request_delay_sec() -> float:
+    raw = os.getenv(REQUEST_DELAY_SEC_ENV, "0.12").strip()
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return 0.12
+
+
+def _sleep_between_requests() -> None:
+    delay = _request_delay_sec()
+    if delay > 0:
+        time.sleep(delay)
 
 
 def _http_get_json(url: str, timeout_sec: float = 25.0) -> Dict[str, Any]:
@@ -172,6 +198,7 @@ def _fetch_openalex_institution(
     university: Dict[str, Any],
 ) -> Tuple[Optional[Dict[str, Any]], str]:
     name = str(university.get("name") or "").strip()
+    query_name_base = OPENALEX_NAME_OVERRIDES.get(name, name)
     location = university.get("location")
     location = location if isinstance(location, dict) else {}
     country_code = COUNTRY_CODE_MAP.get(str(location.get("country") or "").strip(), "")
@@ -180,8 +207,8 @@ def _fetch_openalex_institution(
     lat = _safe_num(coords.get("lat"))
     lon = _safe_num(coords.get("lon"))
 
-    cleaned = re.sub(r"\([^)]*\)", "", name).strip() or name
-    query_candidates = [cleaned, re.sub(r"^the\s+", "", cleaned, flags=re.IGNORECASE), name]
+    cleaned = re.sub(r"\([^)]*\)", "", query_name_base).strip() or query_name_base
+    query_candidates = [cleaned, re.sub(r"^the\s+", "", cleaned, flags=re.IGNORECASE), query_name_base, name]
     query_candidates = [q for i, q in enumerate(query_candidates) if q and q not in query_candidates[:i]]
 
     best_row: Optional[Dict[str, Any]] = None
@@ -391,13 +418,13 @@ def main() -> None:
             openalex_row, openalex_url = _fetch_openalex_institution(university)
         except Exception as exc:
             print(f"  OpenAlex lookup failed: {exc}")
-        time.sleep(0.12)
+        _sleep_between_requests()
 
         try:
             geocode_row, geocode_url = _fetch_city_population(university)
         except Exception as exc:
             print(f"  Open-Meteo lookup failed: {exc}")
-        time.sleep(0.12)
+        _sleep_between_requests()
 
         finance = university.get("finance")
         finance = finance if isinstance(finance, dict) else {}
@@ -406,12 +433,17 @@ def main() -> None:
         official_rank = _official_rank_position(university)
         population = _safe_num((geocode_row or {}).get("population"))
         if population is None:
-            try:
-                wikidata_population, wikidata_url = _fetch_city_population_wikidata(university)
-                population = _safe_num(wikidata_population)
-            except Exception as exc:
-                print(f"  Wikidata population lookup failed: {exc}")
-            time.sleep(0.12)
+            city_name = str((university.get("location") or {}).get("city") or "").strip()
+            if city_name in FALLBACK_CITY_POPULATION:
+                population = FALLBACK_CITY_POPULATION[city_name]
+                wikidata_population = population
+            else:
+                try:
+                    wikidata_population, wikidata_url = _fetch_city_population_wikidata(university)
+                    population = _safe_num(wikidata_population)
+                except Exception as exc:
+                    print(f"  Wikidata population lookup failed: {exc}")
+                _sleep_between_requests()
 
         staged.append(
             {
